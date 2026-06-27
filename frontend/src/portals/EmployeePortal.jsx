@@ -1,44 +1,71 @@
 import React, { useContext, useMemo, useState } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import { API_BASE } from '../config';
-import EcoCreditsPanel from '../components/EcoCreditsPanel';
+import EcoCreditsPanel from '../components/EcoCreditsPanel';import TeamChat from '../components/TeamChat';
+import TaskManager from '../components/TaskManager';
+import WorkerSignUp from '../components/WorkerSignUp';
 
-// Demo roster context for the logged-in worker
-const PROFILE = {
-  role: 'Senior Farm Hand',
-  farm: 'Al Hattawi Organic Farm — Hatta (Dubai)',
-  supervisor: 'Salem Al Hattawi',
-  shift: 'Morning · 06:00 – 14:00',
-  dailyWage: 180,
-  currency: 'AED',
-  attendance: 96,
+// Tailwind classes for each task priority badge
+const PRIORITY_STYLE = {
+  high: 'bg-rose-500/10 text-rose-400 border-rose-500/30',
+  medium: 'bg-amber-500/10 text-amber-400 border-amber-500/30',
+  low: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30',
 };
 
-const INITIAL_TASKS = [
-  { id: 1, title: 'Irrigate east date palm sector', priority: 'high', done: false },
-  { id: 2, title: 'Inspect bee colonies (boxes 1–10)', priority: 'medium', done: false },
-  { id: 3, title: 'Sort & pack Khalas dates for resort order', priority: 'high', done: true },
-  { id: 4, title: 'Refill goat feed and water troughs', priority: 'low', done: true },
-  { id: 5, title: 'Log soil moisture readings in app', priority: 'medium', done: false },
-];
-
+// Recent payslip history (demo data — no backend dependency)
 const PAYSLIPS = [
+  { month: 'June 2026', days: 25, gross: 4500, status: 'Pending' },
   { month: 'May 2026', days: 26, gross: 4680, status: 'Paid' },
-  { month: 'April 2026', days: 25, gross: 4500, status: 'Paid' },
-  { month: 'March 2026', days: 27, gross: 4860, status: 'Paid' },
+  { month: 'April 2026', days: 24, gross: 4320, status: 'Paid' },
 ];
-
-const PRIORITY_STYLE = {
-  high: 'bg-rose-500/10 text-rose-400 border-rose-500/20',
-  medium: 'bg-amber-500/10 text-amber-300 border-amber-500/20',
-  low: 'bg-zinc-700/40 text-zinc-350 border-zinc-700',
+// ── STATEFUL ROSTER INTEGRATION ─────────────────────────────────────────────
+const getRosterProfile = (name) => {
+  const staff = JSON.parse(localStorage.getItem('eco_employees_staff') || '[]');
+  const current = staff.find(e => e.name.toLowerCase().includes((name || '').toLowerCase())) || {
+    id: 'EMP-04',
+    name: name || 'Ramesh Kumar',
+    role: 'Senior Farm Hand',
+    shift: '06:00 – 14:00',
+    wage: 4680,
+    attendance: 96,
+    status: 'On Duty'
+  };
+  return {
+    ...current,
+    dailyWage: Math.round(current.wage / 26),
+    currency: 'AED',
+    farm: 'Al Hattawi Organic Farm — Hatta (Dubai)',
+    supervisor: 'Salem Al Hattawi'
+  };
 };
 
 export default function EmployeePortal() {
   const { name, logout, token, refreshCredits } = useContext(AuthContext);
-  const [tasks, setTasks] = useState(INITIAL_TASKS);
-  const [clockedIn, setClockedIn] = useState(false);
-  const [clockTime, setClockTime] = useState(null);
+
+  const PROFILE = useMemo(() => getRosterProfile(name), [name]);
+
+  // Active workspace view: dashboard | tasks | chat
+  const [activeView, setActiveView] = useState('dashboard');
+
+  // First-time worker onboarding gate (lightweight, localStorage-backed)
+  const [needsOnboarding, setNeedsOnboarding] = useState(
+    () => localStorage.getItem('eco_worker_onboarded') !== '1'
+  );
+
+  // Load stateful tasks assigned by farmer
+  const PRIORITIES = ['high', 'medium', 'low'];
+  const [tasks, setTasks] = useState(() => {
+    const allTasks = JSON.parse(localStorage.getItem('eco_employees_tasks') || '{}');
+    const list = allTasks[PROFILE.id] || [
+      'Irrigate east date palm sector',
+      'Inspect bee colonies (boxes 1–10)',
+      'Sort & pack Khalas dates for resort order'
+    ];
+    return list.map((t, idx) => ({ id: idx, title: t, done: false, priority: PRIORITIES[idx % PRIORITIES.length] }));
+  });
+
+  const [clockedIn, setClockedIn] = useState(PROFILE.status === 'On Duty');
+  const [clockTime, setClockTime] = useState(PROFILE.status === 'On Duty' ? '06:00 AM' : null);
 
   // Timesheet state
   const [loggedShifts, setLoggedShifts] = useState([
@@ -50,8 +77,8 @@ export default function EmployeePortal() {
   const [logNotes, setLogNotes] = useState('');
 
   const completed = tasks.filter((t) => t.done).length;
-  const progress = Math.round((completed / tasks.length) * 100);
-  const earnedThisMonth = useMemo(() => Math.round(PROFILE.dailyWage * (PROFILE.attendance / 100) * 26), []);
+  const progress = tasks.length > 0 ? Math.round((completed / tasks.length) * 100) : 0;
+  const earnedThisMonth = useMemo(() => Math.round(PROFILE.dailyWage * (PROFILE.attendance / 100) * 26), [PROFILE]);
 
   const toggleTask = async (id) => {
     let clickedTask = null;
@@ -84,7 +111,20 @@ export default function EmployeePortal() {
   };
 
   const toggleClock = () => {
-    setClockedIn((v) => !v);
+    const nextClocked = !clockedIn;
+    setClockedIn(nextClocked);
+    const nextStatus = nextClocked ? 'On Duty' : 'Off Duty';
+
+    // Update in shared localStorage staff roster
+    const staff = JSON.parse(localStorage.getItem('eco_employees_staff') || '[]');
+    const updatedStaff = staff.map(s => {
+      if (s.id === PROFILE.id || s.name.toLowerCase() === (name || '').toLowerCase()) {
+        return { ...s, status: nextStatus };
+      }
+      return s;
+    });
+    localStorage.setItem('eco_employees_staff', JSON.stringify(updatedStaff));
+
     setClockTime(new Date().toLocaleTimeString('en-AE', { hour: '2-digit', minute: '2-digit' }));
   };
 
@@ -98,18 +138,22 @@ export default function EmployeePortal() {
     setLogNotes('');
   };
 
+  // First-time workers complete a quick sign-up before seeing the dashboard
+  if (needsOnboarding) {
+    return (
+      <WorkerSignUp
+        defaultName={name}
+        onComplete={() => setNeedsOnboarding(false)}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#07080a] text-zinc-300 antialiased font-sans">
       {/* Sticky header with MOE style */}
       <header className="sticky top-0 z-40 border-b border-zinc-800/60 bg-[#0f1115]/90 backdrop-blur-md">
         <div className="max-w-5xl mx-auto flex items-center justify-between gap-3 px-4 md:px-8 h-16">
-          <div className="flex items-center gap-2.5">
-            <span className="text-xl">👩‍🌾</span>
-            <div className="leading-tight text-left">
-              <span className="text-sm font-black bg-gradient-to-r from-[#c2a14e] to-yellow-500 bg-clip-text text-transparent tracking-wide">ECO CONNECT</span>
-              <p className="text-[9px] uppercase tracking-widest text-[#c2a14e]/80 font-mono">Operations Portal</p>
-            </div>
-          </div>
+          <Logo size="md" subtitle="Operations Portal" />
           <div className="flex items-center gap-3">
             <button
               onClick={toggleClock}
@@ -144,6 +188,29 @@ export default function EmployeePortal() {
           </div>
         </div>
 
+        {/* Workspace tab navigation */}
+        <div className="flex items-center gap-2 border-b border-zinc-850 overflow-x-auto scrollbar-none">
+          {[
+            { id: 'dashboard', label: '📊 My Dashboard' },
+            { id: 'tasks', label: '🗂️ Task Board' },
+            { id: 'chat', label: '💬 Team Chat' },
+          ].map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setActiveView(t.id)}
+              className={`px-4 py-3 text-xs font-bold transition-all border-b-2 -mb-px cursor-pointer uppercase tracking-wider whitespace-nowrap ${
+                activeView === t.id
+                  ? 'text-[#c2a14e] border-[#c2a14e]'
+                  : 'text-zinc-500 border-transparent hover:text-zinc-300'
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        {activeView === 'dashboard' && (
+          <>
         {/* KPI Dashboard Grid */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-left">
           {[
@@ -289,6 +356,12 @@ export default function EmployeePortal() {
         <div className="mt-6">
           <EcoCreditsPanel />
         </div>
+          </>
+        )}
+
+        {activeView === 'tasks' && <TaskManager />}
+
+        {activeView === 'chat' && <TeamChat />}
       </main>
     </div>
   );

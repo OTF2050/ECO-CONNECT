@@ -28,9 +28,40 @@ def _chat_completion(url, messages, api_key=None, model="local-model",
         res_json = json.loads(response.read().decode("utf-8"))
         return res_json["choices"][0]["message"]["content"].strip()
 
+# Global AI Config
+AI_MODE = "cloud"
+
+def call_llm(messages, temperature=0.5, max_tokens=400, timeout=4.0):
+    """
+    Unified LLM caller. If AI_MODE is 'cloud', queries the Cloud model.
+    Falls back to Local model if Cloud fails/lacks credentials.
+    """
+    if AI_MODE == "cloud":
+        if FALCON_CLOUD_KEY:
+            try:
+                print(f"[AI Config Routing] Dispatching to Generative Cloud Model: {FALCON_CLOUD_MODEL}...")
+                reply = _chat_completion(FALCON_CLOUD_URL, messages, api_key=FALCON_CLOUD_KEY,
+                                         model=FALCON_CLOUD_MODEL, temperature=temperature,
+                                         max_tokens=max_tokens, timeout=timeout)
+                return reply
+            except Exception as e:
+                print(f"[AI Config Routing] Cloud call failed ({e}). Falling back to Local model.")
+        else:
+            print("[AI Config Routing] Cloud mode active but FALCON_CLOUD_API_KEY empty. Falling back to Local model.")
+
+    try:
+        print("[AI Config Routing] Dispatching to Local Model...")
+        reply = _chat_completion(LOCAL_LLM_URL, messages, api_key=None,
+                                 model="local-model", temperature=temperature,
+                                 max_tokens=max_tokens, timeout=3.0)
+        return reply
+    except Exception as e:
+        print(f"[AI Config Routing] Local model failed ({e}).")
+        raise e
+
 def analyze_report_with_ai(description: str) -> dict:
     """
-    Sends the user's environmental description to a local LLM to run category routing,
+    Sends the user's environmental description to LLM to run category routing,
     severity tags extraction, and department sorting. Falls back to keyword parsers if offline.
     """
     prompt_system = (
@@ -40,43 +71,23 @@ def analyze_report_with_ai(description: str) -> dict:
         "The department MUST be one of: 'Water Operations', 'Soil & Agriculture', 'Waste Management', 'Agricultural Extension'. "
         "Output ONLY raw JSON format without markdown backticks."
     )
-    
     prompt_user = f"Resident Report Description: {description}"
-    
-    headers = {"Content-Type": "application/json"}
-    payload = {
-        "model": "local-model",
-        "messages": [
-            {"role": "system", "content": prompt_system},
-            {"role": "user", "content": prompt_user}
-        ],
-        "temperature": 0.1
-    }
-    
+    messages = [
+        {"role": "system", "content": prompt_system},
+        {"role": "user", "content": prompt_user}
+    ]
     try:
-        data = json.dumps(payload).encode("utf-8")
-        req = urllib.request.Request(LOCAL_LLM_URL, data=data, headers=headers, method="POST")
-        
-        # Short timeout to avoid freezing the API thread
-        with urllib.request.urlopen(req, timeout=3.0) as response:
-            res_data = response.read().decode("utf-8")
-            res_json = json.loads(res_data)
-            content = res_json["choices"][0]["message"]["content"].strip()
-            
-            # Clean markdown codeblocks if LLM returned them
-            if content.startswith("```"):
-                content = re.sub(r"^```(?:json)?\n|```$", "", content, flags=re.MULTILINE).strip()
-            
-            parsed_analysis = json.loads(content)
-            print(f"[AI Node] Local LLM analysis successful: {parsed_analysis}")
-            return {
-                "severity": parsed_analysis.get("severity", "Medium"),
-                "department": parsed_analysis.get("department", "General Maintenance"),
-                "ai_processed": True
-            }
-            
-    except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, json.JSONDecodeError, KeyError) as e:
-        print(f"[AI Node] Local LLM server offline or timed out ({str(e)}). Running rule-based parser fallback.")
+        content = call_llm(messages, temperature=0.1, max_tokens=150)
+        if content.startswith("```"):
+            content = re.sub(r"^```(?:json)?\n|```$", "", content, flags=re.MULTILINE).strip()
+        parsed_analysis = json.loads(content)
+        return {
+            "severity": parsed_analysis.get("severity", "Medium"),
+            "department": parsed_analysis.get("department", "General Maintenance"),
+            "ai_processed": True
+        }
+    except Exception as e:
+        print(f"[AI Node] LLM call failed ({e}). Running rule-based parser fallback.")
         return run_rule_based_fallback(description)
 
 def run_rule_based_fallback(text: str) -> dict:
@@ -584,23 +595,18 @@ def ask_falcon_assistant(message: str, history: list = None) -> dict:
             messages.append({"role": h.get("role", "user"), "content": h.get("content", "")})
     messages.append({"role": "user", "content": message})
 
-    # Real cloud agent (hosted, OpenAI-compatible \u2014 set FALCON_CLOUD_API_KEY)
-    if FALCON_CLOUD_KEY:
-        try:
-            reply = _chat_completion(FALCON_CLOUD_URL, messages, api_key=FALCON_CLOUD_KEY,
-                                     model=FALCON_CLOUD_MODEL, timeout=12.0, max_tokens=600)
-            return {
-                "reply": reply,
-                "agent": "Falcon \u00b7 Cloud Agent",
-                "ai_processed": True,
-                "topic": topic_label,
-                "topic_id": topic_id,
-                "trace": _falcon_trace(message, topic_label, online=True),
-            }
-        except Exception as e:
-            print(f"[Falcon] Cloud agent failed ({e}).")
-    else:
-        print("[Falcon] No FALCON_CLOUD_API_KEY set \u2014 using offline knowledge base.")
+    try:
+        reply = call_llm(messages, temperature=0.7, max_tokens=600, timeout=12.0)
+        return {
+            "reply": reply,
+            "agent": f"Falcon · {'Cloud' if AI_MODE == 'cloud' else 'Local'} Agent",
+            "ai_processed": True,
+            "topic": topic_label,
+            "topic_id": topic_id,
+            "trace": _falcon_trace(message, topic_label, online=True),
+        }
+    except Exception as e:
+        print(f"[Falcon] LLM caller failed ({e}). Using offline chatbot fallback.")
 
     # Safety net so Falcon always responds
     return {

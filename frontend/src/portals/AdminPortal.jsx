@@ -4,10 +4,82 @@ import EcoCopilotChat from '../components/EcoCopilotChat';
 import { API_BASE } from '../config';
 import StatCard from '../components/StatCard';
 import GovFooter from '../components/GovFooter';
+import Logo from '../components/Logo';
 
 export default function AdminPortal() {
   const { token, name, logout } = useContext(AuthContext);
   const [activeTab, setActiveTab] = useState('reports');
+  const [aiMode, setAiMode] = useState('cloud');
+  const [aiKey, setAiKey] = useState('');
+  const [aiUrl, setAiUrl] = useState('');
+  const [aiModel, setAiModel] = useState('');
+
+  const fetchAiConfig = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/ai-config`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setAiMode(data.ai_mode);
+        setAiKey(data.ai_key || '');
+        setAiUrl(data.ai_url || '');
+        setAiModel(data.ai_model || '');
+      }
+    } catch (err) {
+      console.error('Error fetching AI config:', err);
+    }
+  };
+
+  const handleToggleAiMode = async (mode) => {
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/ai-config`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ ai_mode: mode })
+      });
+      if (res.ok) {
+        setAiMode(mode);
+      }
+    } catch (err) {
+      console.error('Error setting AI config:', err);
+    }
+  };
+
+  const handleSaveAiCredentials = async (e) => {
+    e.preventDefault();
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/ai-config`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          ai_mode: aiMode,
+          ai_key: aiKey,
+          ai_url: aiUrl,
+          ai_model: aiModel
+        })
+      });
+      if (res.ok) {
+        alert('AI credentials updated successfully!');
+      } else {
+        alert('Failed to update AI credentials.');
+      }
+    } catch (err) {
+      console.error('Error saving AI config:', err);
+      alert('Error updating AI credentials.');
+    }
+  };
+
+  useEffect(() => {
+    fetchAiConfig();
+  }, []);
+
   const [reports, setReports] = useState([]);
   const [auditLogs, setAuditLogs] = useState([]);
   const [successMsg, setSuccessMsg] = useState('');
@@ -21,6 +93,7 @@ export default function AdminPortal() {
   const [adjustingUserId, setAdjustingUserId] = useState(null);
   const [adjustCreditsVal, setAdjustCreditsVal] = useState('');
   const [adjustCreditsType, setAdjustCreditsType] = useState('add');
+  const [usersTab, setUsersTab] = useState('all'); // 'all' | 'pending'
 
   // Government Requests state
   const [govRequests, setGovRequests] = useState([]);
@@ -144,6 +217,30 @@ export default function AdminPortal() {
       }
     } catch {
       setErrorMsg('Network error updating user status.');
+      setTimeout(() => setErrorMsg(''), 4000);
+    }
+  };
+
+  const handleApproveUser = async (user_id) => {
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/users/${user_id}/status`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ status: 'active' })
+      });
+      if (res.ok) {
+        fetchUsers();
+        setSuccessMsg(`User approved successfully!`);
+        setTimeout(() => setSuccessMsg(''), 4000);
+      } else {
+        setErrorMsg('Failed to approve user.');
+        setTimeout(() => setErrorMsg(''), 4000);
+      }
+    } catch {
+      setErrorMsg('Network error during user approval.');
       setTimeout(() => setErrorMsg(''), 4000);
     }
   };
@@ -1369,23 +1466,126 @@ export default function AdminPortal() {
     );
   };
 
+  const renderAiConfig = () => {
+    return (
+      <div className="bg-[#111317] border border-zinc-800 rounded-3xl p-8 max-w-2xl mx-auto space-y-6 font-sans mt-4">
+        <div>
+          <span className="inline-block text-[9px] font-bold uppercase tracking-widest text-emerald-400 border border-emerald-500/20 rounded-full px-2.5 py-1 bg-emerald-500/5 mb-3">
+            Federal AI Integration
+          </span>
+          <h3 className="text-lg font-bold text-zinc-100">LLM Engine Configurations</h3>
+          <p className="text-xs text-zinc-500 mt-1">Configure global routing models, OpenAI-compatible API URLs, and secrets for the Eco Connect sovereign assistant.</p>
+        </div>
+
+        <form onSubmit={handleSaveAiCredentials} className="space-y-4 text-left">
+          <div className="flex flex-col gap-2">
+            <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider">AI Routing Mode</label>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setAiMode('cloud')}
+                className={`py-3 px-4 rounded-xl border font-bold text-xs cursor-pointer transition-all flex items-center justify-center gap-2 ${aiMode === 'cloud' ? 'bg-[#1b3d34] border-emerald-500/50 text-[#4ade80]' : 'bg-zinc-950 border-zinc-900 text-zinc-500 hover:text-zinc-350'}`}
+              >
+                ☁️ Generative Cloud AI
+              </button>
+              <button
+                type="button"
+                onClick={() => setAiMode('local')}
+                className={`py-3 px-4 rounded-xl border font-bold text-xs cursor-pointer transition-all flex items-center justify-center gap-2 ${aiMode === 'local' ? 'bg-[#1b3d34] border-emerald-500/50 text-[#4ade80]' : 'bg-zinc-950 border-zinc-900 text-zinc-500 hover:text-zinc-350'}`}
+              >
+                💻 Local AI Model
+              </button>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[10px] uppercase font-bold text-zinc-400">Cloud API Base URL</label>
+            <input
+              type="text"
+              value={aiUrl}
+              onChange={(e) => setAiUrl(e.target.value)}
+              placeholder="e.g. https://api.groq.com/openai/v1/chat/completions"
+              className="bg-zinc-950 border border-zinc-850 hover:border-zinc-700 text-xs text-zinc-300 p-3.5 rounded-xl outline-none focus:border-emerald-500 font-mono"
+            />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[10px] uppercase font-bold text-zinc-400">Cloud API Key (Bearer Secret)</label>
+            <input
+              type="password"
+              value={aiKey}
+              onChange={(e) => setAiKey(e.target.value)}
+              placeholder="Enter your Cloud API Secret / Bearer Token"
+              className="bg-zinc-950 border border-zinc-850 hover:border-zinc-700 text-xs text-zinc-300 p-3.5 rounded-xl outline-none focus:border-emerald-500 font-mono"
+            />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[10px] uppercase font-bold text-zinc-400">Cloud Model Name</label>
+            <input
+              type="text"
+              value={aiModel}
+              onChange={(e) => setAiModel(e.target.value)}
+              placeholder="e.g. llama-3.3-70b-versatile"
+              className="bg-zinc-950 border border-zinc-850 hover:border-zinc-700 text-xs text-zinc-300 p-3.5 rounded-xl outline-none focus:border-emerald-500 font-mono"
+            />
+          </div>
+
+          <button
+            type="submit"
+            className="w-full bg-emerald-600 hover:bg-emerald-550 text-white py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider cursor-pointer border-0 active:scale-95 transition-all mt-4 font-sans"
+          >
+            Apply Configurations 🚀
+          </button>
+        </form>
+      </div>
+    );
+  };
+
   const renderUserManagement = () => {
-    const filtered = usersList.filter(u => 
+    const activeList = usersList.filter(u => u.status !== 'pending_onboarding' && u.status !== 'pending_approval');
+    const pendingList = usersList.filter(u => u.status === 'pending_onboarding' || u.status === 'pending_approval');
+
+    const filtered = (usersTab === 'all' ? activeList : pendingList).filter(u => 
       (u.name || '').toLowerCase().includes(usersSearch.toLowerCase()) || 
-      (u.username || '').toLowerCase().includes(usersSearch.toLowerCase()) ||
+      (u.email || '').toLowerCase().includes(usersSearch.toLowerCase()) ||
       (u.role || '').toLowerCase().includes(usersSearch.toLowerCase())
     );
 
     return (
       <div className="space-y-6 animate-fadeIn text-left mt-6">
         {/* Banner */}
-        <div className="bg-[#15171e] border border-zinc-800 p-6 rounded-2xl">
-          <h3 className="text-md font-bold text-zinc-100 flex items-center gap-2">
-            <span>👥</span> Regional Users Registry &amp; Role Governance
-          </h3>
-          <p className="text-xs text-zinc-450 mt-1 font-light">
-            Monitor registration status, toggle suspension access-control gates, distribute community seed credits, and modify security clearance roles.
-          </p>
+        <div className="bg-[#15171e] border border-zinc-800 p-6 rounded-2xl flex justify-between items-center">
+          <div>
+            <h3 className="text-md font-bold text-zinc-100 flex items-center gap-2">
+              <span>👥</span> Regional Users Registry &amp; Role Governance
+            </h3>
+            <p className="text-xs text-zinc-450 mt-1 font-light">
+              Monitor registration status, toggle suspension access-control gates, distribute community seed credits, and modify security clearance roles.
+            </p>
+          </div>
+          <span className="inline-flex items-center gap-1 text-[9px] font-bold bg-[#1b3d34] text-emerald-455 border border-emerald-900/50 px-2.5 py-1 rounded-full uppercase">
+            Onboarding approvals
+          </span>
+        </div>
+
+        {/* Sub-tab Selectors */}
+        <div className="flex gap-2 bg-zinc-950 p-1.5 rounded-xl border border-zinc-850 w-fit">
+          <button
+            onClick={() => setUsersTab('all')}
+            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all border-0 cursor-pointer ${usersTab === 'all' ? 'bg-[#1a2024] text-[#4ade80] border border-emerald-900/50' : 'bg-transparent text-zinc-450 hover:text-zinc-200'}`}
+          >
+            Active Users Registry ({activeList.length})
+          </button>
+          <button
+            onClick={() => setUsersTab('pending')}
+            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all border-0 cursor-pointer flex items-center gap-1.5 ${usersTab === 'pending' ? 'bg-[#1a2024] text-[#4ade80] border border-emerald-900/50' : 'bg-transparent text-zinc-450 hover:text-zinc-200'}`}
+          >
+            Onboarding Approvals ({pendingList.length})
+            {pendingList.length > 0 && (
+              <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
+            )}
+          </button>
         </div>
 
         {/* Action search bar */}
@@ -1394,7 +1594,7 @@ export default function AdminPortal() {
             type="text"
             value={usersSearch}
             onChange={(e) => setUsersSearch(e.target.value)}
-            placeholder="Search by name, username or role..."
+            placeholder={usersTab === 'all' ? "Search by name, email or role..." : "Search pending approvals..."}
             className="flex-1 bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-xs text-zinc-350 outline-none focus:border-emerald-500"
           />
           <button
@@ -1408,100 +1608,203 @@ export default function AdminPortal() {
 
         {usersErr && <p className="text-rose-455 text-xs font-mono">{usersErr}</p>}
 
-        {/* Users Table */}
-        <div className="bg-[#111317] border border-zinc-855 rounded-2xl overflow-hidden shadow-lg">
-          <div className="overflow-x-auto w-full">
-            <table className="w-full text-left text-xs font-light font-mono text-zinc-400">
-              <thead className="bg-zinc-950 border-b border-zinc-850 text-zinc-500 font-bold uppercase text-[9px] tracking-wider">
-                <tr>
-                  <th className="p-4">User Details</th>
-                  <th className="p-4">Clearance Role</th>
-                  <th className="p-4 text-right">Credit Balance</th>
-                  <th className="p-4 text-center">Status</th>
-                  <th className="p-4 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-zinc-850/60">
-                {filtered.map((user) => (
-                  <tr key={user.id} className="hover:bg-zinc-900/25">
-                    <td className="p-4">
-                      <div className="text-zinc-200 font-bold text-xs">{user.name}</div>
-                      <div className="text-[10px] text-zinc-550 font-mono mt-0.5">@{user.username} (ID: {user.id})</div>
-                    </td>
-                    <td className="p-4">
-                      <select
-                        value={user.role}
-                        onChange={(e) => handleAlterRole(user.id, e.target.value)}
-                        className="bg-zinc-950 border border-zinc-800 rounded-lg p-1.5 text-xs text-zinc-300 outline-none font-sans"
-                      >
-                        <option value="farmer">Farmer (Seller)</option>
-                        <option value="buyer">Buyer (Tourist)</option>
-                        <option value="employee">Employee</option>
-                        <option value="investor">Investor</option>
-                        <option value="admin">Administrator</option>
-                      </select>
-                    </td>
-                    <td className="p-4 text-right">
-                      {adjustingUserId === user.id ? (
-                        <form onSubmit={(e) => handleAdjustCreditsSubmit(e, user.id)} className="flex items-center gap-1.5 justify-end">
-                          <select
-                            value={adjustCreditsType}
-                            onChange={(e) => setAdjustCreditsType(e.target.value)}
-                            className="bg-zinc-950 border border-zinc-800 rounded p-1 text-[10px] outline-none text-zinc-300 font-sans"
-                          >
-                            <option value="add">Add</option>
-                            <option value="deduct">Deduct</option>
-                          </select>
-                          <input
-                            type="number"
-                            value={adjustCreditsVal}
-                            onChange={(e) => setAdjustCreditsVal(e.target.value)}
-                            placeholder="AED"
-                            className="bg-zinc-950 border border-zinc-800 rounded p-1 text-[10px] w-14 outline-none text-zinc-350"
-                            required
-                          />
-                          <button type="submit" className="bg-emerald-600 text-white font-bold px-1.5 py-1 rounded text-[9px] border-0 cursor-pointer font-sans">Go</button>
-                          <button type="button" onClick={() => setAdjustingUserId(null)} className="bg-zinc-800 text-zinc-400 px-1.5 py-1 rounded text-[9px] border-0 cursor-pointer font-sans">X</button>
-                        </form>
-                      ) : (
-                        <div className="flex items-center justify-end gap-2">
-                          <span className="font-bold text-emerald-450">{(user.credits || 0).toLocaleString()} AED</span>
-                          <button
-                            onClick={() => { setAdjustingUserId(user.id); setAdjustCreditsVal(''); }}
-                            className="text-[9px] bg-zinc-800 hover:bg-zinc-750 text-[#c2a14e] border border-zinc-700 px-2 py-0.5 rounded cursor-pointer border-0 font-sans font-bold"
-                          >
-                            Adjust
-                          </button>
-                        </div>
-                      )}
-                    </td>
-                    <td className="p-4 text-center">
-                      <span className={`text-[9px] uppercase font-bold px-2 py-0.5 rounded-full border ${
-                        user.status === 'suspended'
-                          ? 'bg-rose-500/10 text-rose-455 border-rose-500/20'
-                          : 'bg-emerald-500/10 text-emerald-450 border-emerald-500/20'
-                      }`}>
-                        {user.status || 'active'}
-                      </span>
-                    </td>
-                    <td className="p-4 text-right">
-                      <button
-                        onClick={() => handleToggleStatus(user.id, user.status)}
-                        className={`text-[10px] font-bold px-3 py-1.5 rounded-xl uppercase transition-all cursor-pointer border-0 font-sans ${
-                          user.status === 'suspended'
-                            ? 'bg-[#1b3d34] text-[#4ade80] hover:brightness-110'
-                            : 'bg-rose-900/25 text-rose-450 border border-rose-900/50 hover:bg-rose-900/35'
-                        }`}
-                      >
-                        {user.status === 'suspended' ? 'Unsuspend 🟢' : 'Suspend 🚫'}
-                      </button>
-                    </td>
+        {usersTab === 'all' ? (
+          /* Users Table */
+          <div className="bg-[#111317] border border-zinc-855 rounded-2xl overflow-hidden shadow-lg animate-fadeIn">
+            <div className="overflow-x-auto w-full">
+              <table className="w-full text-left text-xs font-light font-mono text-zinc-400">
+                <thead className="bg-zinc-950 border-b border-zinc-850 text-zinc-500 font-bold uppercase text-[9px] tracking-wider">
+                  <tr>
+                    <th className="p-4">User Details</th>
+                    <th className="p-4">Clearance Role</th>
+                    <th className="p-4 text-right">Credit Balance</th>
+                    <th className="p-4 text-center">Status</th>
+                    <th className="p-4 text-right">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-zinc-850/60">
+                  {filtered.map((user) => (
+                    <tr key={user.id} className="hover:bg-zinc-900/25">
+                      <td className="p-4">
+                        <div className="text-zinc-200 font-bold text-xs">{user.name}</div>
+                        <div className="text-[10px] text-zinc-550 font-mono mt-0.5">{user.email} (ID: {user.id})</div>
+                      </td>
+                      <td className="p-4">
+                        <select
+                          value={user.role}
+                          onChange={(e) => handleAlterRole(user.id, e.target.value)}
+                          className="bg-zinc-950 border border-zinc-800 rounded-lg p-1.5 text-xs text-zinc-300 outline-none font-sans"
+                        >
+                          <option value="farmer">Farmer (Seller)</option>
+                          <option value="buyer">Buyer (Tourist)</option>
+                          <option value="employee">Employee</option>
+                          <option value="investor">Investor</option>
+                          <option value="admin">Administrator</option>
+                        </select>
+                      </td>
+                      <td className="p-4 text-right">
+                        {adjustingUserId === user.id ? (
+                          <form onSubmit={(e) => handleAdjustCreditsSubmit(e, user.id)} className="flex items-center gap-1.5 justify-end">
+                            <select
+                              value={adjustCreditsType}
+                              onChange={(e) => setAdjustCreditsType(e.target.value)}
+                              className="bg-zinc-950 border border-zinc-800 rounded p-1 text-[10px] outline-none text-zinc-300 font-sans"
+                            >
+                              <option value="add">Add</option>
+                              <option value="deduct">Deduct</option>
+                            </select>
+                            <input
+                              type="number"
+                              value={adjustCreditsVal}
+                              onChange={(e) => setAdjustCreditsVal(e.target.value)}
+                              placeholder="AED"
+                              className="bg-zinc-950 border border-zinc-800 rounded p-1 text-[10px] w-14 outline-none text-zinc-350"
+                              required
+                            />
+                            <button type="submit" className="bg-emerald-600 text-white font-bold px-1.5 py-1 rounded text-[9px] border-0 cursor-pointer font-sans">Go</button>
+                            <button type="button" onClick={() => setAdjustingUserId(null)} className="bg-zinc-800 text-zinc-400 px-1.5 py-1 rounded text-[9px] border-0 cursor-pointer font-sans">X</button>
+                          </form>
+                        ) : (
+                          <div className="flex items-center justify-end gap-2">
+                            <span className="font-bold text-emerald-455">{(user.credits || 0).toLocaleString()} AED</span>
+                            <button
+                              onClick={() => { setAdjustingUserId(user.id); setAdjustCreditsVal(''); }}
+                              className="text-[9px] bg-zinc-800 hover:bg-zinc-750 text-[#c2a14e] border border-zinc-700 px-2 py-0.5 rounded cursor-pointer border-0 font-sans font-bold"
+                            >
+                              Adjust
+                            </button>
+                          </div>
+                        )}
+                      </td>
+                      <td className="p-4 text-center">
+                        <span className={`text-[9px] uppercase font-bold px-2 py-0.5 rounded-full border ${
+                          user.status === 'suspended'
+                            ? 'bg-rose-500/10 text-rose-455 border-rose-500/20'
+                            : 'bg-emerald-500/10 text-emerald-450 border-emerald-500/20'
+                        }`}>
+                          {user.status || 'active'}
+                        </span>
+                      </td>
+                      <td className="p-4 text-right">
+                        <button
+                          onClick={() => handleToggleStatus(user.id, user.status)}
+                          className={`text-[10px] font-bold px-3 py-1.5 rounded-xl uppercase transition-all cursor-pointer border-0 font-sans ${
+                            user.status === 'suspended'
+                              ? 'bg-[#1b3d34] text-[#4ade80] hover:brightness-110'
+                              : 'bg-rose-900/25 text-rose-450 border border-rose-900/50 hover:bg-rose-900/35'
+                          }`}
+                        >
+                          {user.status === 'suspended' ? 'Unsuspend 🟢' : 'Suspend 🚫'}
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                  {filtered.length === 0 && (
+                    <tr>
+                      <td colSpan="5" className="p-8 text-center text-zinc-550 italic font-sans">No users found matching query.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
+        ) : (
+          /* Onboarding approvals cards */
+          <div className="grid grid-cols-1 gap-6 animate-fadeIn font-sans">
+            {filtered.map((user) => {
+              let investorProfile = null;
+              try {
+                if (user.investor_profile_json) {
+                  investorProfile = JSON.parse(user.investor_profile_json);
+                }
+              } catch {}
+              
+              return (
+                <div key={user.id} className="bg-[#111317] border border-zinc-800 rounded-2xl p-6 space-y-4">
+                  <div className="flex flex-wrap justify-between items-start gap-4">
+                    <div>
+                      <h4 className="text-sm font-bold text-zinc-200">{user.name}</h4>
+                      <p className="text-xs text-zinc-500 font-mono mt-0.5">{user.email} (ID: {user.id})</p>
+                      <div className="flex gap-2 mt-2">
+                        <span className={`inline-block text-[9px] font-bold uppercase px-2 py-0.5 rounded-full border ${user.role === 'farmer' ? 'bg-emerald-950/40 text-emerald-450 border-emerald-900/50' : 'bg-purple-950/40 text-purple-450 border-purple-900/50'}`}>
+                          {user.role === 'farmer' ? '🌾 Farmer Supplier' : '💼 ESG Investor'}
+                        </span>
+                        <span className="inline-block text-[9px] font-bold uppercase px-2 py-0.5 rounded-full bg-amber-950/40 text-amber-450 border border-amber-900/50">
+                          {user.status === 'pending_onboarding' ? 'Documents Pending' : 'Review Required ⏳'}
+                        </span>
+                      </div>
+                    </div>
+                    {user.status === 'pending_approval' && (
+                      <button
+                        onClick={() => handleApproveUser(user.id)}
+                        className="bg-emerald-600 hover:bg-emerald-550 text-white text-xs font-bold py-2.5 px-5 rounded-xl uppercase tracking-wider cursor-pointer border-0 font-sans active:scale-95 transition-all shadow-md"
+                      >
+                        Approve Account ✅
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Uploaded Documents */}
+                  <div className="border-t border-zinc-850 pt-4 space-y-3">
+                    <span className="text-[10px] uppercase font-bold text-zinc-550 tracking-wider block">Uploaded Documents Vault</span>
+                    {user.documents && user.documents.length > 0 ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 font-mono">
+                        {user.documents.map((doc, idx) => (
+                          <div key={idx} className="bg-zinc-950 border border-zinc-850 rounded-xl p-3 flex justify-between items-center text-xs">
+                            <div>
+                              <span className="font-bold text-zinc-300 block font-sans">{doc.doc_type}</span>
+                              <span className="text-[10px] text-zinc-550 font-mono">Serial: {doc.extracted_id_number || 'N/A'}</span>
+                            </div>
+                            <a
+                              href={`${API_BASE}${doc.file_url}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-[#c2a14e] hover:text-[#e0c37c] font-bold text-[10px] uppercase cursor-pointer no-underline"
+                            >
+                              View File 📄
+                            </a>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-zinc-650 italic font-sans">No verification documents uploaded yet.</p>
+                    )}
+                  </div>
+
+                  {/* Investor Onboarding Questionnaire answers */}
+                  {user.role === 'investor' && investorProfile && (
+                    <div className="border-t border-zinc-850 pt-4 space-y-2">
+                      <span className="text-[10px] uppercase font-bold text-zinc-550 tracking-wider block">Investor Profile Answers</span>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs font-mono text-zinc-400 bg-zinc-950 p-4 rounded-xl border border-zinc-850">
+                        <div>
+                          <span className="text-[9px] uppercase font-bold text-zinc-600 block">Investment Capacity</span>
+                          <span className="text-zinc-200 mt-1 block font-sans">{investorProfile.investment_capacity}</span>
+                        </div>
+                        <div>
+                          <span className="text-[9px] uppercase font-bold text-zinc-600 block">Sectors of Interest</span>
+                          <span className="text-zinc-200 mt-1 block font-sans">
+                            {Array.isArray(investorProfile.sectors_of_interest)
+                              ? investorProfile.sectors_of_interest.join(', ')
+                              : investorProfile.sectors_of_interest || 'N/A'}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-[9px] uppercase font-bold text-zinc-600 block">Venture Class</span>
+                          <span className="text-zinc-200 mt-1 block font-sans">{investorProfile.investor_type}</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+            {filtered.length === 0 && (
+              <div className="py-12 text-center text-zinc-600 italic text-xs border border-dashed border-zinc-850 rounded-2xl">
+                No pending registrations found.
+              </div>
+            )}
+          </div>
+        )}
       </div>
     );
   };
@@ -1513,17 +1816,35 @@ export default function AdminPortal() {
       {/* Navbar Header */}
       <nav className="mb-8 flex justify-between items-center bg-zinc-900/40 border border-zinc-800/60 p-4 rounded-2xl backdrop-blur-md">
         <div className="flex items-center gap-3">
-          <span className="text-2xl">🏛️</span>
-          <div>
+          <Logo size="md" />
+          <span className="hidden sm:block w-px h-8 bg-zinc-800" />
+          <div className="hidden sm:block">
             <h2 className="text-md font-bold text-zinc-100">Government Administration</h2>
             <p className="text-[10px] text-zinc-405 font-mono">FEDERAL ENVIRONMENTAL PORTAL</p>
           </div>
         </div>
         <div className="flex items-center gap-4">
+          <div className="flex items-center bg-zinc-950 p-1 rounded-xl border border-zinc-850 gap-1 text-[10px] font-bold">
+            <button
+              onClick={() => handleToggleAiMode('cloud')}
+              className={`px-2.5 py-1.5 rounded-lg border-0 cursor-pointer transition-all ${aiMode === 'cloud' ? 'bg-[#1b3d34] text-emerald-450 font-extrabold' : 'bg-transparent text-zinc-500 hover:text-zinc-300'}`}
+              title="Route AI queries to Cloud Generative AI model"
+            >
+              ☁️ Cloud AI
+            </button>
+            <button
+              onClick={() => handleToggleAiMode('local')}
+              className={`px-2.5 py-1.5 rounded-lg border-0 cursor-pointer transition-all ${aiMode === 'local' ? 'bg-[#1b3d34] text-emerald-450 font-extrabold' : 'bg-transparent text-zinc-500 hover:text-zinc-300'}`}
+              title="Route AI queries to Local LLM model"
+            >
+              💻 Local AI
+            </button>
+          </div>
+
           <span className="text-xs text-zinc-405 hidden sm:inline">Admin: <strong className="text-emerald-400">{name}</strong></span>
           <button 
             onClick={logout}
-            className="text-xs bg-zinc-800/80 hover:bg-zinc-700/85 border border-zinc-700/50 px-4 py-2 rounded-xl text-zinc-300 transition-all"
+            className="text-xs bg-zinc-800/80 hover:bg-zinc-700/85 border border-zinc-700/50 px-4 py-2 rounded-xl text-zinc-300 transition-all cursor-pointer"
           >
             Logout 🚪
           </button>
@@ -1601,6 +1922,16 @@ export default function AdminPortal() {
           }`}
         >
           <span>👥</span> User Management
+        </button>
+        <button
+          onClick={() => setActiveTab('ai-config')}
+          className={`pb-4 px-5 font-bold text-xs tracking-wider transition-all border-b-2 uppercase flex items-center gap-2 outline-none ${
+            activeTab === 'ai-config'
+              ? 'border-emerald-500 text-emerald-400'
+              : 'border-transparent text-zinc-550 hover:text-zinc-355'
+          }`}
+        >
+          <span>⚙️</span> AI Config
         </button>
       </div>
 
@@ -1905,6 +2236,7 @@ export default function AdminPortal() {
       {activeTab === 'crisis-center' && renderCrisisCenter()}
       {activeTab === 'community-board' && renderCommunityBoard()}
       {activeTab === 'users' && renderUserManagement()}
+      {activeTab === 'ai-config' && renderAiConfig()}
 
       <GovFooter />
       <EcoCopilotChat />

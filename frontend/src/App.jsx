@@ -13,6 +13,8 @@ import SmartDocumentVerification from './components/SmartDocumentVerification';
 import EcoSouqWebsite from './components/EcoSouqWebsite';
 import MobileAppSimulator from './components/MobileAppSimulator';
 import EcoSouqLogin from './components/EcoSouqLogin';
+import LandingPage from './components/LandingPage';
+import { FarmerGatekeeper, InvestorGatekeeper } from './components/OnboardingGates';
 
 // ==========================================================================
 // LOGIN VIEW COMPONENT
@@ -420,11 +422,11 @@ function Login() {
               <button
                 onClick={() => handleFastLogin('employee@eco.ae', 'employee123')}
                 disabled={isSubmitLoading}
-                className="flex flex-col items-center gap-1.5 px-4 py-4 rounded-2xl border border-[#247055]/40 bg-gradient-to-b from-[#eef7f1] to-[#dcefdf] hover:from-[#0f2b1f] hover:to-[#143a28] text-[#1b5a43] hover:text-emerald-200 transition-all duration-300 shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 cursor-pointer disabled:opacity-60 group"
+                className="flex flex-col items-center gap-1.5 px-4 py-4 rounded-2xl border border-[#9b7a36]/40 bg-gradient-to-b from-[#fdf8ec] to-[#f5ead0] hover:from-[#1a1208] hover:to-[#2a1e0a] text-[#4a3728] hover:text-amber-200 transition-all duration-300 shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 cursor-pointer disabled:opacity-60 group"
               >
                 <span className="text-2xl">👷</span>
                 <span className="text-xs font-bold uppercase tracking-wide">{ar ? 'دخول الموظف' : 'Employee Sign In'}</span>
-                <span className="text-[9px] text-[#247055] group-hover:text-emerald-300/70">{ar ? 'المهام والرواتب' : 'Tasks & payslips'}</span>
+                <span className="text-[9px] text-[#9b7a36] group-hover:text-amber-300/70">{ar ? 'المهام والرواتب' : 'Tasks & payslips'}</span>
               </button>
             </div>
           </div>
@@ -438,11 +440,11 @@ function Login() {
 // CORE APP ROUTER ENTRYPOINT
 // ==========================================================================
 export default function App() {
-  const [hash, setHash] = useState(window.location.hash || '#/login');
+  const [hash, setHash] = useState(window.location.hash || '#/');
 
   useEffect(() => {
     const handleHashChange = () => {
-      setHash(window.location.hash || '#/login');
+      setHash(window.location.hash || '#/');
     };
     
     window.addEventListener('hashchange', handleHashChange);
@@ -461,7 +463,9 @@ export default function App() {
       case '#/farmer':
         return (
           <ProtectedRoute allowedRoles={['farmer', 'admin']}>
-            <FarmerPortal />
+            <FarmerGatekeeper>
+              <FarmerPortal />
+            </FarmerGatekeeper>
           </ProtectedRoute>
         );
       case '#/admin':
@@ -479,7 +483,9 @@ export default function App() {
       case '#/investor':
         return (
           <ProtectedRoute allowedRoles={['investor', 'admin']}>
-            <InvestorPortal />
+            <InvestorGatekeeper>
+              <InvestorPortal />
+            </InvestorGatekeeper>
           </ProtectedRoute>
         );
       case '#/employee':
@@ -495,8 +501,11 @@ export default function App() {
       case '#/mobile':
         return <MobileAppSimulator />;
       case '#/login':
-      default:
         return <Login />;
+      case '#/landing':
+      case '#/':
+      default:
+        return <LandingPage />;
     }
   };
 

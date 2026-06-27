@@ -18,6 +18,7 @@ from backend.models import init_db, User, Farmer, EcoReport, MarketInventory, Tr
 from backend.auth import get_password_hash, verify_password, create_access_token, get_current_user, RoleChecker
 from backend.ai import analyze_report_with_ai, chat_with_agri_advisor, classify_civic_report, analyze_report_batch, ask_falcon_assistant, generate_business_plan, analyze_local_market, structure_document_text, forecast_crop_demand, evaluate_subsidy_eligibility
 from backend.tasks import generate_municipality_pdf, generate_subsidy_pdf
+import backend.ai as ai
 
 # Initialize Database on application boot
 init_db()
@@ -61,6 +62,8 @@ class UserResponse(BaseModel):
     name: str
     email: str
     role: str
+    status: Optional[str] = None
+    investor_profile_json: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -70,6 +73,7 @@ class Token(BaseModel):
     token_type: str
     role: str
     name: str
+    status: Optional[str] = None
 
 class ReportCreate(BaseModel):
     title: str
@@ -434,7 +438,8 @@ def register_user(user_data: UserRegister, db: Session = Depends(get_db)):
         name=user_data.name,
         email=user_data.email,
         password_hash=get_password_hash(user_data.password),
-        role=user_data.role
+        role=user_data.role,
+        status="pending_onboarding" if user_data.role in ["farmer", "investor"] else "active"
     )
     db.add(new_user)
     db.commit()
@@ -463,12 +468,13 @@ def login_for_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Sessio
             headers={"WWW-Authenticate": "Bearer"},
         )
     
-    token = create_access_token(data={"sub": user.email, "role": user.role})
+    token = create_access_token(data={"sub": user.email, "role": user.role, "status": user.status or "active"})
     return {
         "access_token": token,
         "token_type": "bearer",
         "role": user.role,
-        "name": user.name
+        "name": user.name,
+        "status": user.status or "active"
     }
 
 # --- SMART AI ONBOARDING: DOCUMENT VERIFICATION & "MY FILES" VAULT ---
@@ -575,6 +581,8 @@ def verify_document(
         file_url=f"/api/documents/file/{safe_name}",
     )
     db.add(record)
+    if current_user.status == "pending_onboarding":
+        current_user.status = "pending_approval"
     db.commit()
     db.refresh(record)
 
@@ -1838,6 +1846,20 @@ def get_user_credits(current_user: User = Depends(get_current_user)):
         "eco_credits": getattr(current_user, "eco_credits", 0)
     }
 
+class CreditDeductRequest(BaseModel):
+    amount: float
+
+@app.post("/api/user/credits/deduct")
+def deduct_user_credits(payload: CreditDeductRequest, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Deducts a specific amount of Eco Credits from the user's balance."""
+    current_credits = getattr(current_user, "eco_credits", 0) or 0
+    if current_credits < payload.amount:
+        raise HTTPException(status_code=400, detail="Insufficient Eco Credits balance.")
+    current_user.eco_credits = current_credits - payload.amount
+    db.commit()
+    db.refresh(current_user)
+    return {"message": "Credits deducted successfully", "remaining_credits": current_user.eco_credits}
+
 @app.get("/api/rewards")
 def list_rewards():
     """List all available rewards in the catalog."""
@@ -1974,19 +1996,72 @@ def voice_assistant_endpoint(payload: VoiceAssistantRequest):
         "command": command
     }
 
+@app.get("/api/user/status")
+def get_user_status(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Fetch status and profile info of the logged in user."""
+    docs = db.query(UserDocument).filter(UserDocument.farmer_id == current_user.id).all()
+    doc_list = [{
+        "doc_type": d.doc_type,
+        "extracted_id_number": d.extracted_id_number,
+        "verification_status": d.verification_status,
+        "file_url": d.file_url
+    } for d in docs]
+    
+    return {
+        "status": getattr(current_user, "status", "active") or "active",
+        "role": current_user.role,
+        "name": current_user.name,
+        "investor_profile_json": getattr(current_user, "investor_profile_json", None),
+        "documents": doc_list
+    }
+
+class InvestorProfileSubmit(BaseModel):
+    answers: dict
+
+@app.post("/api/user/investor-profile")
+def submit_investor_profile(payload: InvestorProfileSubmit, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Saves the investor's questionnaire answers and updates status."""
+    current_user.investor_profile_json = json.dumps(payload.answers)
+    if current_user.status == "pending_onboarding":
+        # Check if they have also uploaded a document
+        doc_count = db.query(UserDocument).filter(UserDocument.farmer_id == current_user.id).count()
+        if doc_count > 0:
+            current_user.status = "pending_approval"
+    else:
+        # If they haven't uploaded yet, but completed the questionnaire, check and update
+        doc_count = db.query(UserDocument).filter(UserDocument.farmer_id == current_user.id).count()
+        if doc_count > 0:
+            current_user.status = "pending_approval"
+        else:
+            current_user.status = "pending_approval" # Auto advance to approval for simple demo
+    db.commit()
+    return {"message": "Investor profile updated.", "status": current_user.status}
+
 @app.get("/api/admin/users")
 def get_all_users(current_user: User = Depends(RoleChecker(["admin"])), db: Session = Depends(get_db)):
     """Fetch all registered users for administration dashboard."""
     users = db.query(User).all()
     out = []
     for u in users:
+        docs = db.query(UserDocument).filter(UserDocument.farmer_id == u.id).all()
+        doc_list = [{
+            "doc_type": d.doc_type,
+            "extracted_id_number": d.extracted_id_number,
+            "holder_name": d.holder_name,
+            "verification_status": d.verification_status,
+            "file_url": d.file_url
+        } for d in docs]
+        
         out.append({
             "id": u.id,
             "name": u.name,
             "email": u.email,
             "role": u.role,
             "status": getattr(u, "status", "active") or "active",
-            "eco_credits": getattr(u, "eco_credits", 0) or 0
+            "eco_credits": getattr(u, "eco_credits", 0) or 0,
+            "credits": getattr(u, "eco_credits", 0) or 0,
+            "investor_profile_json": getattr(u, "investor_profile_json", None),
+            "documents": doc_list
         })
     return out
 
@@ -2022,6 +2097,42 @@ def update_user_role(user_id: int, payload: UserRoleUpdate, current_user: User =
     db.commit()
     db.refresh(u)
     return {"message": "User role updated successfully", "id": u.id, "role": u.role}
+
+class AIConfigUpdate(BaseModel):
+    ai_mode: str
+    ai_key: str = None
+    ai_url: str = None
+    ai_model: str = None
+
+@app.get("/api/admin/ai-config")
+def get_ai_config(current_user: User = Depends(RoleChecker(["admin"]))):
+    """Retrieve global AI mode configuration (cloud or local) and credentials."""
+    return {
+        "ai_mode": ai.AI_MODE,
+        "ai_key": ai.FALCON_CLOUD_KEY,
+        "ai_url": ai.FALCON_CLOUD_URL,
+        "ai_model": ai.FALCON_CLOUD_MODEL
+    }
+
+@app.patch("/api/admin/ai-config")
+def update_ai_config(payload: AIConfigUpdate, current_user: User = Depends(RoleChecker(["admin"]))):
+    """Modify global AI mode configuration and credentials."""
+    if payload.ai_mode not in ["cloud", "local"]:
+        raise HTTPException(status_code=400, detail="Invalid AI mode. Must be 'cloud' or 'local'.")
+    ai.AI_MODE = payload.ai_mode
+    if payload.ai_key is not None:
+        ai.FALCON_CLOUD_KEY = payload.ai_key
+    if payload.ai_url is not None:
+        ai.FALCON_CLOUD_URL = payload.ai_url
+    if payload.ai_model is not None:
+        ai.FALCON_CLOUD_MODEL = payload.ai_model
+    return {
+        "message": "AI configuration updated successfully",
+        "ai_mode": ai.AI_MODE,
+        "ai_key": ai.FALCON_CLOUD_KEY,
+        "ai_url": ai.FALCON_CLOUD_URL,
+        "ai_model": ai.FALCON_CLOUD_MODEL
+    }
 
 if __name__ == "__main__":
     import uvicorn

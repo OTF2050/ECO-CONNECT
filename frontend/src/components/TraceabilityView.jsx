@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { API_BASE as API } from '../config';
+import Logo from './Logo';
 
 // Public product "story" page shown when a buyer scans a crop's QR code.
 // No authentication — anyone with the link/QR can verify provenance.
@@ -32,9 +33,8 @@ export default function TraceabilityView({ publicId }) {
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#0a0a0a] to-[#0c130f] text-zinc-300 flex flex-col items-center px-4 py-10">
       <div className="w-full max-w-md">
-        <div className="flex items-center justify-center gap-2.5 mb-6">
-          <img src="/logo.svg" alt="Eco Connect" className="w-8 h-8" />
-          <span className="text-lg font-black bg-gradient-to-r from-emerald-400 to-teal-300 bg-clip-text text-transparent tracking-wide">ECO CONNECT</span>
+        <div className="flex items-center justify-center mb-6">
+          <Logo size="lg" />
         </div>
 
         {loading && (

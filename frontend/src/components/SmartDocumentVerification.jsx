@@ -66,38 +66,46 @@ function ScanningOverlay({ docType }) {
   );
 }
 
-function DocumentCard({ doc }) {
+function DocumentCard({ doc, isLight = false }) {
   const days = doc.days_to_expiry;
   const expiringSoon = typeof days === 'number' && days < 60;
   const docMeta = REQUIRED_DOCS.find((d) => d.type === doc.doc_type);
 
   return (
-    <div className="relative rounded-2xl border border-emerald-800/50 bg-gradient-to-br from-[#0e1a14] to-[#0a120d] p-5 shadow-lg hover:shadow-emerald-900/30 transition-all duration-300 hover:-translate-y-0.5">
+    <div className={`relative rounded-2xl border transition-all duration-300 hover:-translate-y-0.5 p-5 ${
+      isLight 
+        ? 'bg-white border-zinc-200 shadow-sm hover:shadow-md text-zinc-800' 
+        : 'bg-gradient-to-br from-[#0e1a14] to-[#0a120d] border-emerald-800/50 shadow-lg hover:shadow-emerald-900/30 text-emerald-100'
+    }`}>
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-2xl">
+          <div className={`w-11 h-11 rounded-xl flex items-center justify-center text-2xl ${
+            isLight ? 'bg-emerald-50 border border-emerald-200' : 'bg-emerald-500/15 border border-emerald-500/30'
+          }`}>
             {docMeta?.icon || '📄'}
           </div>
           <div>
-            <h4 className="text-sm font-bold text-emerald-50 leading-tight">{doc.doc_type}</h4>
-            <p className="text-[11px] text-emerald-500/70">{doc.holder_name || 'Verified holder'}</p>
+            <h4 className={`text-xs font-bold leading-tight ${isLight ? 'text-zinc-800' : 'text-emerald-50'}`}>{doc.doc_type}</h4>
+            <p className={`text-[10px] ${isLight ? 'text-zinc-500' : 'text-emerald-500/70'}`}>{doc.holder_name || 'Verified holder'}</p>
           </div>
         </div>
-        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 border border-emerald-500/40 px-2.5 py-1 text-[10px] font-bold text-emerald-300 whitespace-nowrap">
-          ✅ AI Verified
+        <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-bold border ${
+          isLight ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-emerald-500/15 text-emerald-300 border-emerald-500/40'
+        }`}>
+          AI Verified
         </span>
       </div>
 
       <div className="mt-4 grid grid-cols-2 gap-3">
-        <div className="rounded-xl bg-black/30 border border-emerald-900/40 px-3 py-2">
-          <p className="text-[9px] uppercase tracking-wider text-emerald-600/80 font-bold">License / ID No.</p>
-          <p className="text-xs font-mono font-semibold text-emerald-100 mt-0.5 break-all">
+        <div className={`rounded-xl px-3 py-2 border ${isLight ? 'bg-zinc-50 border-zinc-200' : 'bg-black/30 border-emerald-900/40'}`}>
+          <p className={`text-[9px] uppercase tracking-wider font-bold ${isLight ? 'text-zinc-500' : 'text-emerald-600/80'}`}>License / ID No.</p>
+          <p className={`text-xs font-mono font-semibold mt-0.5 break-all ${isLight ? 'text-zinc-800' : 'text-emerald-100'}`}>
             {doc.extracted_id_number || '—'}
           </p>
         </div>
-        <div className="rounded-xl bg-black/30 border border-emerald-900/40 px-3 py-2">
-          <p className="text-[9px] uppercase tracking-wider text-emerald-600/80 font-bold">Expiry Date</p>
-          <p className="text-xs font-semibold text-emerald-100 mt-0.5">{formatDate(doc.expiry_date)}</p>
+        <div className={`rounded-xl px-3 py-2 border ${isLight ? 'bg-zinc-50 border-zinc-200' : 'bg-black/30 border-emerald-900/40'}`}>
+          <p className={`text-[9px] uppercase tracking-wider font-bold ${isLight ? 'text-zinc-500' : 'text-emerald-600/80'}`}>Expiry Date</p>
+          <p className={`text-xs font-semibold mt-0.5 ${isLight ? 'text-zinc-800' : 'text-emerald-100'}`}>{formatDate(doc.expiry_date)}</p>
         </div>
       </div>
 
@@ -109,9 +117,11 @@ function DocumentCard({ doc }) {
           </p>
         </div>
       ) : (
-        <div className="mt-3 flex items-center gap-2 rounded-xl bg-emerald-500/5 border border-emerald-900/40 px-3 py-2">
+        <div className={`mt-3 flex items-center gap-2 rounded-xl px-3 py-2 border ${
+          isLight ? 'bg-emerald-50/50 border-emerald-200/50' : 'bg-emerald-500/5 border-emerald-900/40'
+        }`}>
           <span className="text-base">🛡️</span>
-          <p className="text-[11px] font-medium text-emerald-400/90 leading-tight">
+          <p className={`text-[11px] font-medium leading-tight ${isLight ? 'text-emerald-700' : 'text-emerald-400/90'}`}>
             Valid{typeof days === 'number' ? ` · ${days} days remaining` : ''}
           </p>
         </div>
@@ -122,7 +132,7 @@ function DocumentCard({ doc }) {
           href={`${API_BASE}${doc.file_url}`}
           target="_blank"
           rel="noreferrer"
-          className="mt-3 inline-flex items-center gap-1.5 text-[11px] font-semibold text-emerald-400 hover:text-emerald-300 transition-colors"
+          className="mt-3 inline-flex items-center gap-1.5 text-[11px] font-semibold text-emerald-600 hover:text-emerald-500 transition-colors"
         >
           📎 View original file
         </a>
@@ -198,10 +208,12 @@ export default function SmartDocumentVerification({ token, userName, onComplete,
       <div className="space-y-5">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
-            <h2 className="text-xl font-black text-emerald-50 flex items-center gap-2">🗂️ My Vault</h2>
-            <p className="text-xs text-emerald-500/70 mt-0.5">AI-verified documents secured to your account.</p>
+            <h2 className={`text-base font-black flex items-center gap-2 ${vaultOnly ? 'text-zinc-800' : 'text-emerald-50'}`}>🗂️ My Vault</h2>
+            <p className={`text-[10px] mt-0.5 ${vaultOnly ? 'text-zinc-500' : 'text-emerald-500/70'}`}>AI-verified documents secured to your account.</p>
           </div>
-          <label className="cursor-pointer inline-flex items-center gap-2 rounded-xl bg-emerald-500/15 border border-emerald-500/40 px-4 py-2 text-xs font-bold text-emerald-300 hover:bg-emerald-500/25 transition-all">
+          <label className={`cursor-pointer inline-flex items-center gap-2 rounded-xl px-4 py-2 text-[10px] font-bold border transition-all ${
+            vaultOnly ? 'bg-emerald-600 text-white hover:bg-emerald-555 border-emerald-500/20' : 'bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/25'
+          }`}>
             ➕ Add Document
             <input
               type="file"
@@ -227,15 +239,17 @@ export default function SmartDocumentVerification({ token, userName, onComplete,
         ) : loadingVault ? (
           <p className="text-emerald-600/70 text-sm py-10 text-center">Loading your vault…</p>
         ) : documents.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-emerald-800/50 bg-[#0a120d] py-12 text-center">
+          <div className={`rounded-2xl border border-dashed py-12 text-center ${
+            vaultOnly ? 'border-zinc-200 bg-zinc-50' : 'border-emerald-800/50 bg-[#0a120d]'
+          }`}>
             <div className="text-4xl mb-2">📂</div>
-            <p className="text-sm text-emerald-300 font-semibold">No documents yet</p>
-            <p className="text-xs text-emerald-600/70 mt-1">Add your Emirates ID and Agricultural Holding Certificate.</p>
+            <p className={`text-sm font-semibold ${vaultOnly ? 'text-zinc-700' : 'text-emerald-300'}`}>No documents yet</p>
+            <p className={`text-xs mt-1 ${vaultOnly ? 'text-zinc-400' : 'text-emerald-600/70'}`}>Add your Emirates ID and Agricultural Holding Certificate.</p>
           </div>
         ) : (
           <div className="grid sm:grid-cols-2 gap-4">
             {documents.map((doc) => (
-              <DocumentCard key={doc.doc_id} doc={doc} />
+              <DocumentCard key={doc.doc_id} doc={doc} isLight={vaultOnly} />
             ))}
           </div>
         )}
@@ -281,7 +295,7 @@ export default function SmartDocumentVerification({ token, userName, onComplete,
 
               <div className="grid sm:grid-cols-2 gap-4">
                 {documents.map((doc) => (
-                  <DocumentCard key={doc.doc_id} doc={doc} />
+                  <DocumentCard key={doc.doc_id} doc={doc} isLight={vaultOnly} />
                 ))}
                 {/* Pending docs as upload prompts */}
                 {REQUIRED_DOCS.filter((d) => !uploadedTypes.includes(d.type)).map((d) => (

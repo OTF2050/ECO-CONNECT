@@ -18,6 +18,7 @@ class User(Base):
     role = Column(String, default="farmer") # 'farmer', 'admin', 'tourist'
     eco_credits = Column(Integer, default=100) # starting credits for demo/users
     status = Column(String, default="active", nullable=True) # 'active', 'suspended', 'verified'
+    investor_profile_json = Column(Text, nullable=True)
     
     # Relationships
     farmer_profile = relationship("Farmer", uselist=False, back_populates="user", cascade="all, delete-orphan")
@@ -264,6 +265,10 @@ def init_db():
             if "status" not in columns:
                 print("[Database Migration] Adding 'status' column to users table...")
                 conn.execute(text("ALTER TABLE users ADD COLUMN status VARCHAR DEFAULT 'active'"))
+                conn.commit()
+            if "investor_profile_json" not in columns:
+                print("[Database Migration] Adding 'investor_profile_json' column to users table...")
+                conn.execute(text("ALTER TABLE users ADD COLUMN investor_profile_json TEXT"))
                 conn.commit()
         except Exception as migration_error:
             print(f"[Database Migration] Column check failed or column already exists: {migration_error}")

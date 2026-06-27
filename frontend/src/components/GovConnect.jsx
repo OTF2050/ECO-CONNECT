@@ -6,7 +6,7 @@ import DynamicServiceModal from './DynamicServiceModal';
  * GovConnect — A seamless civic dashboard for rural citizens.
  * Green UX dark-mode theme (zinc-900/950 surfaces, emerald-500 / teal-400 accents).
  */
-export default function GovConnect() {
+export default function GovConnect({ isWidget = false }) {
   const [description, setDescription] = useState('');
   const [photoName, setPhotoName] = useState('');
   const [coords, setCoords] = useState('');
@@ -168,8 +168,64 @@ export default function GovConnect() {
     { icon: '🐪', label: 'ADAFSA Animal Health', desc: 'Livestock disease & vet support', number: '800 555 2424' },
   ];
 
+  if (isWidget) {
+    return (
+      <div className="space-y-4 text-left font-sans text-zinc-800 bg-white p-4 rounded-2xl border border-zinc-200 shadow-sm">
+        <div className="flex items-center gap-2">
+          <span className="text-xl">🏛️</span>
+          <div>
+            <h4 className="text-xs font-bold text-zinc-800">Gov-Connect Mini</h4>
+            <p className="text-[9px] text-zinc-500">Subsidies & Active Permits</p>
+          </div>
+        </div>
+
+        {/* Render permits summary */}
+        <div className="space-y-2">
+          {SERVICES.map((srv, idx) => (
+            <div key={idx} className="bg-zinc-50 border border-zinc-200/80 p-2.5 rounded-xl flex justify-between items-center text-[10px]">
+              <div>
+                <span className="font-bold text-zinc-850 block">{srv.title}</span>
+                <span className="text-zinc-400 font-mono">{srv.ref}</span>
+              </div>
+              <span className={`px-2 py-0.5 rounded-full text-[8px] font-bold border ${srv.tone === 'active' ? 'bg-emerald-50 text-emerald-700 border-emerald-250' : 'bg-amber-50 text-amber-700 border-amber-250'}`}>
+                {srv.status}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        {/* Quick report input */}
+        <form onSubmit={handleSubmit} className="space-y-2 border-t border-zinc-200 pt-3">
+          <label className="text-[9px] uppercase font-bold text-zinc-500 block">Report Issue to MOCCAE</label>
+          <input
+            type="text"
+            required
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="e.g. broken pipe or leak..."
+            className="w-full bg-zinc-50 border border-zinc-200 text-xs text-zinc-800 p-2.5 rounded-xl outline-none focus:border-emerald-500"
+          />
+          <button
+            type="submit"
+            disabled={submitting}
+            className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 rounded-xl text-[10px] uppercase border-0 cursor-pointer transition-all"
+          >
+            {submitting ? 'Sending...' : 'Submit Report'}
+          </button>
+        </form>
+
+        {result && (
+          <div className="bg-emerald-50 border border-emerald-250 p-2.5 rounded-xl text-[9px] text-zinc-700 animate-fadeIn">
+            <span className="font-bold text-emerald-700 block uppercase">Report Status: Dispatched</span>
+            <p className="mt-0.5">{result.department_action}</p>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100 font-sans antialiased">
+    <div className="min-h-screen bg-zinc-955 text-zinc-100 font-sans antialiased">
       {/* Ambient glow backdrops */}
       <div className="pointer-events-none fixed -top-32 -left-32 h-96 w-96 rounded-full bg-emerald-600/10 blur-[120px]" />
       <div className="pointer-events-none fixed -bottom-40 -right-24 h-96 w-96 rounded-full bg-teal-500/10 blur-[120px]" />

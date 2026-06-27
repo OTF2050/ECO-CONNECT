@@ -7,6 +7,7 @@ import FeedbackWidget from '../components/FeedbackWidget';
 import ProgressTimeline from '../components/ProgressTimeline';
 import EcoCreditsPanel from '../components/EcoCreditsPanel';
 import { exportReportPdf } from '../utils/reportExport';
+import Logo from '../components/Logo';
 
 const experienceMeta = (title = '') => {
   const t = title.toLowerCase();
@@ -204,6 +205,17 @@ export default function TouristPortal() {
     const saved = localStorage.getItem('eco_surveys');
     return saved ? JSON.parse(saved) : { honey: 14, dates: 28, rugs: 9, tours: 17 };
   });
+
+  // Cart & Checkout states
+  const [startupCart, setStartupCart] = useState([]); // Array of { id, startupId, name, amount }
+  const [showCartDrawer, setShowCartDrawer] = useState(false);
+  const [checkoutStep, setCheckoutStep] = useState(1); // 1: Cart View, 2: Payment, 3: Receipt
+  const [paymentMethod, setPaymentMethod] = useState('card');
+  const [billingName, setBillingName] = useState('');
+  const [cardNumber, setCardNumber] = useState('');
+  const [cardExpiry, setCardExpiry] = useState('');
+  const [cardCvv, setCardCvv] = useState('');
+  const [customBackingAmount, setCustomBackingAmount] = useState({});
 
   // Local interaction states
   const [surveyQ1, setSurveyQ1] = useState('honey');
@@ -480,6 +492,90 @@ export default function TouristPortal() {
     localStorage.setItem('eco_startups', JSON.stringify(updated));
     setFundSuccess(`Pre-order voucher purchased! ${amount} AED has been seed funded to the founder.`);
     setTimeout(() => setFundSuccess(''), 3000);
+  };
+
+  const handleAddToCart = (startupId, name, amount) => {
+    const amt = parseFloat(amount);
+    if (!amt || amt <= 0) {
+      alert('Please enter a valid funding amount.');
+      return;
+    }
+    const newItem = {
+      id: `CART-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      startupId,
+      name,
+      amount: amt
+    };
+    setStartupCart((prev) => [...prev, newItem]);
+    setFundSuccess(`Added ${amt} AED backing for "${name}" to cart! 🛒`);
+    setTimeout(() => setFundSuccess(''), 3000);
+  };
+
+  const handleRemoveFromCart = (cartItemId) => {
+    setStartupCart((prev) => prev.filter((item) => item.id !== cartItemId));
+  };
+
+  const handleCheckoutSubmit = async (e) => {
+    e.preventDefault();
+    if (startupCart.length === 0) return;
+
+    const totalCost = startupCart.reduce((acc, item) => acc + item.amount, 0);
+
+    // If paying with credits, validate balance
+    if (paymentMethod === 'credits') {
+      if (ecoCredits < totalCost) {
+        alert(`Insufficient Eco Credits! You need ${totalCost} Credits, but you only have ${ecoCredits} Credits.`);
+        return;
+      }
+      
+      // Deduct from credits via backend
+      try {
+        const res = await fetch(`${API_BASE}/api/user/credits/deduct`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ amount: totalCost })
+        });
+        if (!res.ok) {
+          console.warn('Credits deduct endpoint failed or not found');
+        }
+      } catch (err) {
+        console.error('Error deducting credits:', err);
+      }
+    }
+
+    // Update startups funding amounts in state and localStorage
+    const updatedStartups = startups.map((s) => {
+      const backings = startupCart.filter((item) => item.startupId === s.id);
+      if (backings.length > 0) {
+        const sum = backings.reduce((sumAcc, b) => sumAcc + b.amount, 0);
+        return { ...s, funding: (s.funding || 0) + sum };
+      }
+      return s;
+    });
+
+    setStartups(updatedStartups);
+    localStorage.setItem('eco_startups', JSON.stringify(updatedStartups));
+
+    // Save invoice receipt details
+    const receipt = {
+      receiptNumber: `REC-${Date.now().toString().slice(-6)}-${Math.floor(100 + Math.random() * 900)}`,
+      date: new Date().toLocaleDateString('en-AE', { year: 'numeric', month: 'long', day: 'numeric' }),
+      time: new Date().toLocaleTimeString('en-AE', { hour: '2-digit', minute: '2-digit' }),
+      payer: billingName || name || 'Eco Tourist Guest',
+      paymentMethod: paymentMethod === 'credits' ? 'Eco Credits' : 'Credit Card',
+      items: [...startupCart],
+      total: totalCost,
+    };
+    
+    setReceiptData(receipt);
+    setStartupCart([]); // Clear cart
+    setCheckoutStep(3); // Go to receipt screen
+    if (paymentMethod === 'credits') {
+      refreshCredits();
+    }
   };
 
   const handlePostSos = (e) => {
@@ -1714,18 +1810,23 @@ export default function TouristPortal() {
                   </div>
                 </div>
 
-                <div className="flex gap-2 pt-2 border-t border-zinc-900">
+                <div className="flex flex-col gap-2 pt-2.5 border-t border-zinc-900">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] text-zinc-550 uppercase">Backing:</span>
+                    <input
+                      type="number"
+                      value={customBackingAmount[biz.id] || '100'}
+                      onChange={(e) => setCustomBackingAmount(prev => ({ ...prev, [biz.id]: e.target.value }))}
+                      placeholder="AED"
+                      className="bg-zinc-950 border border-zinc-850 rounded px-2.5 py-1 text-xs text-zinc-300 font-mono outline-none focus:border-emerald-500 w-20 text-right"
+                    />
+                    <span className="text-[10px] text-zinc-500">AED</span>
+                  </div>
                   <button 
-                    onClick={() => handleFundStartup(biz.id, 50)} 
-                    className="flex-1 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-[10px] font-bold py-2 rounded-lg text-zinc-300 transition-all cursor-pointer"
+                    onClick={() => handleAddToCart(biz.id, biz.name, customBackingAmount[biz.id] || '100')} 
+                    className="w-full bg-[#c2a14e]/10 text-[#c2a14e] hover:bg-[#c2a14e] hover:text-zinc-950 border border-[#c2a14e]/40 font-bold py-2 rounded-xl text-xs uppercase tracking-wide cursor-pointer transition-all active:scale-95 border-0"
                   >
-                    Voucher (50 AED) 🏷️
-                  </button>
-                  <button 
-                    onClick={() => handleFundStartup(biz.id, 100)} 
-                    className="flex-1 bg-emerald-600/10 hover:bg-emerald-600 border border-emerald-500/30 hover:text-zinc-950 text-emerald-450 text-[10px] font-bold py-2 rounded-lg transition-all cursor-pointer"
-                  >
-                    Seed Grant (100 AED) 🤝
+                    🛒 Add Backing to Cart
                   </button>
                 </div>
               </div>
@@ -2016,9 +2117,8 @@ export default function TouristPortal() {
     <div className="min-h-screen bg-[#0a0a0a] text-zinc-300 flex">
       {/* Sidebar navigation */}
       <aside className="w-64 shrink-0 hidden md:flex flex-col border-r border-zinc-800/60 bg-[#0f1115] h-screen sticky top-0">
-        <div className="flex items-center gap-2.5 px-5 h-16 border-b border-zinc-800/60 shrink-0">
-          <span className="text-2xl">🐫</span>
-          <span className="text-md font-black bg-gradient-to-r from-emerald-400 to-teal-300 bg-clip-text text-transparent tracking-wide">ECO VISITOR</span>
+        <div className="flex items-center px-5 h-16 border-b border-zinc-800/60 shrink-0">
+          <Logo size="lg" />
         </div>
 
         <nav className="flex-1 overflow-y-auto p-3 space-y-1">
@@ -2064,10 +2164,7 @@ export default function TouristPortal() {
         {/* Mobile top bar */}
         <div className="md:hidden sticky top-0 z-40 border-b border-zinc-800/60 bg-[#0f1115]/95 backdrop-blur-md">
           <div className="flex items-center justify-between gap-3 px-4 h-14">
-            <div className="flex items-center gap-2">
-              <span className="text-xl">🐫</span>
-              <span className="text-sm font-black bg-gradient-to-r from-emerald-400 to-teal-300 bg-clip-text text-transparent">ECO VISITOR</span>
-            </div>
+            <Logo size="sm" />
             <div className="flex items-center gap-2">
               <div className="bg-amber-500/10 border border-amber-500/20 text-amber-300 text-[10px] font-black rounded-lg px-2.5 py-1 flex items-center gap-1">
                 <span>🪙</span>
@@ -2091,7 +2188,6 @@ export default function TouristPortal() {
             ))}
           </div>
         </div>
-
         {/* Content area */}
         <div className="flex-1 overflow-y-auto p-4 md:p-8">
           {activeTab === 'marketplace' && renderMarketplace()}
@@ -2115,8 +2211,282 @@ export default function TouristPortal() {
             <div className="bg-white p-3 rounded-2xl inline-block">
               <img src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(window.location.origin + '/#/trace/' + qrModalItem.id)}`} alt="Product QR Code" className="w-[150px] h-[150px]" />
             </div>
-            <div className="text-[10px] text-zinc-550 font-mono">TRACEABILITY CODE: TRACE-{qrModalItem.id}</div>
+            <div className="text-[10px] text-zinc-555 font-mono">TRACEABILITY CODE: TRACE-{qrModalItem.id}</div>
             <button onClick={() => setQrModalItem(null)} className="w-full bg-[#1b3d34] text-[#4ade80] py-2.5 rounded-xl text-xs font-bold hover:brightness-110 cursor-pointer">Close</button>
+          </div>
+        </div>
+      )}
+
+      {/* Floating Cart Button */}
+      {startupCart.length > 0 && (
+        <button
+          onClick={() => { setCheckoutStep(1); setShowCartDrawer(true); }}
+          className="fixed bottom-6 right-6 z-50 bg-[#c2a14e] text-zinc-950 hover:brightness-110 font-bold py-3.5 px-6 rounded-full flex items-center gap-2 shadow-2xl border-0 cursor-pointer transition-all animate-bounce"
+        >
+          🛒 View Support Cart ({startupCart.length})
+        </button>
+      )}
+
+      {/* Cart & Checkout Drawer Modal */}
+      {showCartDrawer && (
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex justify-end">
+          <div className="bg-[#0f1115] border-l border-zinc-800/80 w-full max-w-md h-full flex flex-col justify-between p-6 shadow-2xl overflow-y-auto text-left font-sans text-zinc-100 relative">
+            <button
+              onClick={() => setShowCartDrawer(false)}
+              className="absolute top-5 right-5 text-zinc-500 hover:text-zinc-300 bg-transparent border-0 cursor-pointer text-base"
+            >
+              ✕
+            </button>
+
+            {/* Header */}
+            <div className="mb-6">
+              <span className="inline-block text-[9px] font-bold uppercase tracking-widest text-[#c2a14e] border border-[#c2a14e]/40 rounded-full px-2.5 py-1 bg-[#faf6ec]/5 mb-2">
+                Ministry of Climate Change
+              </span>
+              <h3 className="text-md font-bold text-zinc-100 flex items-center gap-2">
+                {checkoutStep === 1 && <span>🛒 Support Cart Checkout</span>}
+                {checkoutStep === 2 && <span>💳 Payment Gate Portal</span>}
+                {checkoutStep === 3 && <span>📄 Official MoCCAE Receipt</span>}
+              </h3>
+            </div>
+
+            {/* Step 1: Cart View */}
+            {checkoutStep === 1 && (
+              <div className="flex-1 flex flex-col justify-between">
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <span className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider">Backing Packages</span>
+                    {startupCart.length === 0 ? (
+                      <p className="text-xs text-zinc-500 italic py-4 text-center">Your cart is empty.</p>
+                    ) : (
+                      <div className="divide-y divide-zinc-900 bg-zinc-950 rounded-2xl border border-zinc-900 p-3 space-y-2">
+                        {startupCart.map((item) => (
+                          <div key={item.id} className="flex justify-between items-center text-xs py-2">
+                            <div>
+                              <span className="font-bold text-zinc-355 block">{item.name}</span>
+                              <span className="text-[10px] text-zinc-500 block">Startup Grant Backing</span>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <span className="font-bold text-emerald-450">{item.amount} AED</span>
+                              <button
+                                onClick={() => handleRemoveFromCart(item.id)}
+                                className="text-rose-500 hover:text-rose-450 bg-transparent border-0 cursor-pointer text-[10px] uppercase"
+                              >
+                                Remove
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {startupCart.length > 0 && (
+                    <div className="space-y-3 pt-2">
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-[10px] uppercase font-bold text-zinc-500">Payer Full Name</label>
+                        <input
+                          type="text"
+                          required
+                          value={billingName}
+                          onChange={(e) => setBillingName(e.target.value)}
+                          placeholder="e.g. John Doe"
+                          className="bg-zinc-955 border border-zinc-850 hover:border-zinc-700 text-xs text-zinc-300 p-3 rounded-xl outline-none focus:border-emerald-500"
+                        />
+                      </div>
+
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-[10px] uppercase font-bold text-zinc-550">Payment Gateway Option</label>
+                        <div className="grid grid-cols-2 gap-2 text-xs">
+                          <label className={`flex items-center justify-center gap-2 p-3 rounded-xl border cursor-pointer hover:border-zinc-700 ${paymentMethod === 'card' ? 'bg-[#1b2024] border-emerald-500/50 text-[#4ade80]' : 'bg-zinc-950 border-zinc-900 text-zinc-450'}`}>
+                            <input
+                              type="radio"
+                              name="paymentOption"
+                              checked={paymentMethod === 'card'}
+                              onChange={() => setPaymentMethod('card')}
+                              className="hidden"
+                            />
+                            <span>💳 Credit Card</span>
+                          </label>
+                          <label className={`flex items-center justify-center gap-2 p-3 rounded-xl border cursor-pointer hover:border-zinc-700 ${paymentMethod === 'credits' ? 'bg-[#1b2024] border-emerald-500/50 text-[#4ade80]' : 'bg-zinc-950 border-zinc-900 text-zinc-455'}`}>
+                            <input
+                              type="radio"
+                              name="paymentOption"
+                              checked={paymentMethod === 'credits'}
+                              onChange={() => setPaymentMethod('credits')}
+                              className="hidden"
+                            />
+                            <span>🪙 Eco Credits</span>
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {startupCart.length > 0 && (
+                  <div className="border-t border-zinc-900 pt-4 mt-6 space-y-4">
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="font-bold text-zinc-400">Total Checkout Cost:</span>
+                      <span className="text-md font-black text-emerald-455">
+                        {startupCart.reduce((acc, item) => acc + item.amount, 0).toLocaleString()} AED
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => setCheckoutStep(2)}
+                      className="w-full bg-[#c2a14e] text-zinc-955 hover:brightness-110 font-bold py-3 rounded-xl text-xs uppercase tracking-wider cursor-pointer border-0 shadow-lg active:scale-95 transition-all"
+                    >
+                      Proceed to Payment Info ➔
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Step 2: Payment Gateway */}
+            {checkoutStep === 2 && (
+              <form onSubmit={handleCheckoutSubmit} className="flex-1 flex flex-col justify-between font-sans">
+                <div className="space-y-4">
+                  {paymentMethod === 'card' ? (
+                    <div className="space-y-3">
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-[10px] uppercase font-bold text-zinc-500">Credit Card Number</label>
+                        <input
+                          type="text"
+                          required
+                          value={cardNumber}
+                          onChange={(e) => setCardNumber(e.target.value)}
+                          placeholder="4000 1234 5678 9010"
+                          maxLength="19"
+                          className="bg-zinc-950 border border-zinc-850 hover:border-zinc-700 text-xs text-zinc-300 p-3 rounded-xl outline-none focus:border-emerald-500 font-mono"
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[10px] uppercase font-bold text-zinc-500">Expiry MM/YY</label>
+                          <input
+                            type="text"
+                            required
+                            value={cardExpiry}
+                            onChange={(e) => setCardExpiry(e.target.value)}
+                            placeholder="12/28"
+                            maxLength="5"
+                            className="bg-zinc-955 border border-zinc-850 hover:border-zinc-700 text-xs text-zinc-300 p-3 rounded-xl outline-none focus:border-emerald-500 font-mono"
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[10px] uppercase font-bold text-zinc-500">Security CVV</label>
+                          <input
+                            type="password"
+                            required
+                            value={cardCvv}
+                            onChange={(e) => setCardCvv(e.target.value)}
+                            placeholder="***"
+                            maxLength="3"
+                            className="bg-zinc-950 border border-zinc-850 hover:border-zinc-700 text-xs text-zinc-300 p-3 rounded-xl outline-none focus:border-emerald-500 font-mono"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="bg-[#1b3d34]/15 border border-emerald-900/40 rounded-2xl p-5 space-y-3">
+                      <span className="text-[10px] uppercase font-bold text-emerald-450 tracking-wider block">Wallet Balance Details</span>
+                      <div className="space-y-1 text-xs">
+                        <div className="flex justify-between">
+                          <span className="text-zinc-500">Current Eco Credits:</span>
+                          <span className="font-bold text-zinc-300">{ecoCredits} Credits</span>
+                        </div>
+                        <div className="flex justify-between border-b border-zinc-900/60 pb-1 mb-1">
+                          <span className="text-zinc-500">Checkout Cost:</span>
+                          <span className="font-bold text-zinc-300">-{startupCart.reduce((a, b) => a + b.amount, 0)} Credits</span>
+                        </div>
+                        <div className="flex justify-between font-bold">
+                          <span className="text-zinc-500">Remaining Balance:</span>
+                          <span className="text-emerald-455">{ecoCredits - startupCart.reduce((a, b) => a + b.amount, 0)} Credits</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="border-t border-zinc-900 pt-4 mt-6 flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setCheckoutStep(1)}
+                    className="px-4 py-3 bg-zinc-850 hover:bg-zinc-800 text-zinc-300 font-bold rounded-xl text-xs uppercase cursor-pointer transition-all border-0"
+                  >
+                    Back
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 bg-emerald-600 hover:bg-emerald-555 text-white font-bold py-3 rounded-xl text-xs uppercase tracking-wider cursor-pointer border-0 shadow-lg active:scale-95 transition-all"
+                  >
+                    Complete Payment 🚀
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* Step 3: Receipt */}
+            {checkoutStep === 3 && receiptData && (
+              <div className="flex-1 flex flex-col justify-between">
+                <div className="space-y-4 bg-white text-zinc-955 p-6 rounded-2xl border-4 border-zinc-350 shadow-inner font-mono text-left leading-relaxed relative overflow-hidden">
+                  <div className="absolute top-[-30px] right-[-30px] w-20 h-20 bg-emerald-100 border border-emerald-350 rounded-full flex items-center justify-center text-2xl font-bold opacity-15">
+                    MoCCAE
+                  </div>
+                  
+                  <div className="text-center border-b border-dashed border-zinc-400 pb-4 space-y-1">
+                    <p className="text-[10px] font-bold tracking-widest uppercase">United Arab Emirates</p>
+                    <p className="text-[9px] tracking-wide text-zinc-600 uppercase">Ministry of Climate Change & Environment</p>
+                    <h4 className="text-xs font-black tracking-tight uppercase pt-2">SEED FUNDING RECEIPT</h4>
+                  </div>
+
+                  <div className="text-[10px] py-3 border-b border-zinc-200 text-zinc-700 space-y-0.5 font-sans">
+                    <div className="flex justify-between"><span>Serial No:</span><span className="font-bold text-zinc-950 font-mono">{receiptData.receiptNumber}</span></div>
+                    <div className="flex justify-between"><span>Date Paid:</span><span>{receiptData.date}</span></div>
+                    <div className="flex justify-between"><span>Time:</span><span>{receiptData.time}</span></div>
+                    <div className="flex justify-between"><span>Funder:</span><span className="font-bold text-zinc-950">{receiptData.payer}</span></div>
+                    <div className="flex justify-between"><span>Gateway:</span><span>{receiptData.paymentMethod}</span></div>
+                  </div>
+
+                  <div className="py-3 border-b border-zinc-200">
+                    <span className="text-[9px] uppercase font-bold text-zinc-500 tracking-wider block mb-2 font-sans">Backing Details</span>
+                    <div className="space-y-1.5">
+                      {receiptData.items.map((item, idx) => (
+                        <div key={idx} className="flex justify-between text-[10px] leading-tight font-sans">
+                          <span>● backing: {item.name}</span>
+                          <span className="font-bold text-zinc-950 font-mono">{item.amount.toLocaleString()} AED</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="pt-3 flex justify-between items-center text-xs font-black border-t border-dashed border-zinc-400">
+                    <span>TOTAL COMPLETED:</span>
+                    <span className="text-sm font-black underline">{receiptData.total.toLocaleString()} AED</span>
+                  </div>
+
+                  <p className="text-[8px] text-zinc-500 font-light text-center leading-normal pt-4 uppercase tracking-wider font-sans">
+                    Thank you for supporting sustainable rural enterprise and local agriculture in UAE.
+                  </p>
+                </div>
+
+                <div className="border-t border-zinc-900 pt-4 mt-6 flex gap-3">
+                  <button
+                    onClick={() => window.print()}
+                    className="flex-1 bg-zinc-850 hover:bg-zinc-800 text-zinc-200 font-bold py-3 rounded-xl text-xs uppercase cursor-pointer transition-all border-0 shadow-md"
+                  >
+                    Print Receipt 🖨️
+                  </button>
+                  <button
+                    onClick={() => { setShowCartDrawer(false); setCheckoutStep(1); }}
+                    className="px-6 bg-emerald-600 hover:bg-emerald-555 text-white font-bold py-3 rounded-xl text-xs uppercase cursor-pointer transition-all border-0"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

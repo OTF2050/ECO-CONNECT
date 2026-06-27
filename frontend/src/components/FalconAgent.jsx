@@ -53,6 +53,7 @@ function buildTrace(message) {
 export default function FalconAgent({ onVoiceCommand }) {
   const [messages, setMessages] = useState([GREETING]);
   const [isListening, setIsListening] = useState(false);
+  const [voiceLang, setVoiceLang] = useState('ar-AE'); // 'ar-AE' | 'en-US'
 
   const startListening = () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -61,7 +62,7 @@ export default function FalconAgent({ onVoiceCommand }) {
       return;
     }
     const rec = new SpeechRecognition();
-    rec.lang = 'ar-AE'; // default to Arabic (Emirati)
+    rec.lang = voiceLang;
     rec.interimResults = false;
     rec.maxAlternatives = 1;
 
@@ -92,11 +93,11 @@ export default function FalconAgent({ onVoiceCommand }) {
     if (!window.speechSynthesis) return;
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'ar-AE';
+    utterance.lang = voiceLang;
     const voices = window.speechSynthesis.getVoices();
-    const arVoice = voices.find(v => v.lang.startsWith('ar'));
-    if (arVoice) {
-      utterance.voice = arVoice;
+    const targetVoice = voices.find(v => v.lang.startsWith(voiceLang.split('-')[0]));
+    if (targetVoice) {
+      utterance.voice = targetVoice;
     }
     window.speechSynthesis.speak(utterance);
   };
@@ -412,6 +413,14 @@ export default function FalconAgent({ onVoiceCommand }) {
                 title="Tap to speak to EcoConnect Voice Hub"
               >
                 {isListening ? '🎙️' : '🎤'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setVoiceLang(prev => prev === 'ar-AE' ? 'en-US' : 'ar-AE')}
+                className="w-12 h-12 rounded-xl border bg-[#120c04] border-[#9b7a36]/30 text-[#c2a14e] hover:border-[#c2a14e] text-[10px] font-bold uppercase transition-all cursor-pointer"
+                title="Toggle Voice Language"
+              >
+                {voiceLang === 'ar-AE' ? 'العربية' : 'EN'}
               </button>
               <input
                 type="text"

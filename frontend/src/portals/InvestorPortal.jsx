@@ -1,6 +1,7 @@
-import React, { useContext, useEffect, useState } from 'react';
+import React, { useContext, useState } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import { API_BASE as API } from '../config';
+import Logo from '../components/Logo';
 
 // Demo pipeline of local entrepreneurs seeking funding
 const OPPORTUNITIES = [
@@ -73,6 +74,8 @@ export default function InvestorPortal() {
   });
   const [selected, setSelected] = useState(null);
   const [pledge, setPledge] = useState('');
+  const [fundStep, setFundStep] = useState('details'); // 'details' | 'signing' | 'success'
+  const [receipt, setReceipt] = useState(null);
 
   // Market intelligence
   const [sector, setSector] = useState(SECTORS[0]);
@@ -84,13 +87,46 @@ export default function InvestorPortal() {
   const fmt = (n) => n.toLocaleString('en-AE');
   const totalCommitted = Object.values(committed).reduce((a, b) => a + b, 0);
   const dealsBacked = Object.keys(committed).length;
+  const carbonCredits = Math.round(totalCommitted / 1500); // ~1 credit per 1,500 AED deployed
 
-  const confirmPledge = () => {
+  // Open the Analyze & Fund modal for a project
+  const openFund = (o) => {
+    setSelected(o);
+    setPledge('');
+    setReceipt(null);
+    setFundStep('details');
+  };
+
+  // Reset and close the modal
+  const closeFund = () => {
+    setSelected(null);
+    setPledge('');
+    setReceipt(null);
+    setFundStep('details');
+  };
+
+  // Simulate signing the smart contract, then issue a receipt
+  const startSigning = () => {
     const amount = parseFloat(pledge);
     if (!selected || !amount || amount <= 0) return;
-    setCommitted((prev) => ({ ...prev, [selected.id]: (prev[selected.id] || 0) + amount }));
-    setPledge('');
-    setSelected(null);
+    setFundStep('signing');
+    setTimeout(() => {
+      setCommitted((prev) => ({ ...prev, [selected.id]: (prev[selected.id] || 0) + amount }));
+      setReceipt({
+        id: `ECO-SC-${Date.now().toString().slice(-6)}`,
+        project: selected.name,
+        founder: selected.founder,
+        amount,
+        equity: selected.equity,
+        roi: selected.roi,
+        date: new Date().toLocaleString('en-AE'),
+        txHash:
+          '0x' +
+          Math.random().toString(16).slice(2, 10) +
+          Math.random().toString(16).slice(2, 10),
+      });
+      setFundStep('success');
+    }, 2200);
   };
 
   const loadInsight = async () => {
@@ -117,13 +153,7 @@ export default function InvestorPortal() {
       {/* Sticky header with MOE style */}
       <header className="sticky top-0 z-40 border-b border-zinc-800/60 bg-[#0f1115]/90 backdrop-blur-md">
         <div className="max-w-6xl mx-auto flex items-center justify-between gap-3 px-4 md:px-8 h-16">
-          <div className="flex items-center gap-2.5">
-            <span className="text-xl">👑</span>
-            <div className="leading-tight text-left">
-              <span className="text-sm font-black bg-gradient-to-r from-amber-400 to-yellow-500 bg-clip-text text-transparent tracking-wide">ECO CONNECT</span>
-              <p className="text-[9px] uppercase tracking-widest text-amber-500/80 font-mono">Investor Console</p>
-            </div>
-          </div>
+          <Logo size="md" subtitle="Investor Console" />
           <div className="flex items-center gap-3">
             <div className="hidden sm:flex items-center gap-2 text-left">
               <div className="w-8 h-8 rounded-full bg-amber-900/40 border border-amber-500/30 flex items-center justify-center text-amber-300 font-bold text-[10px] uppercase">
@@ -143,10 +173,10 @@ export default function InvestorPortal() {
         {/* KPI Dashboard Row */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-left">
           {[
-            { label: 'Available Deals', value: OPPORTUNITIES.length, accent: 'text-amber-400' },
-            { label: 'Deals Backed', value: dealsBacked, accent: 'text-emerald-400' },
-            { label: 'Capital Committed', value: `${fmt(totalCommitted)} AED`, accent: 'text-yellow-500' },
-            { label: 'Avg. Target Yield', value: '22% / yr', accent: 'text-teal-400' },
+            { label: 'Total Capital Deployed', value: `${fmt(totalCommitted)} AED`, accent: 'text-yellow-500' },
+            { label: 'Active Farm Investments', value: dealsBacked, accent: 'text-emerald-400' },
+            { label: 'Estimated ROI', value: '22% / yr', accent: 'text-teal-400' },
+            { label: 'Carbon Credits Earned', value: `${fmt(carbonCredits)} tCO₂`, accent: 'text-amber-400' },
           ].map((kpi) => (
             <div key={kpi.label} className="bg-[#111317] border border-zinc-850 rounded-2xl p-4 flex flex-col justify-between">
               <p className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider">{kpi.label}</p>
@@ -226,18 +256,19 @@ export default function InvestorPortal() {
                     </div>
                   </div>
 
-                  {committed[o.id] ? (
-                    <div className="text-center bg-emerald-500/10 border border-emerald-500/30 text-emerald-450 text-xs font-bold py-2.5 rounded-xl uppercase tracking-wider font-mono">
-                      ✓ Committed: {fmt(committed[o.id])} AED
-                    </div>
-                  ) : (
+                  <div className="space-y-2">
+                    {committed[o.id] > 0 && (
+                      <div className="text-center bg-emerald-500/10 border border-emerald-500/30 text-emerald-450 text-xs font-bold py-2 rounded-xl uppercase tracking-wider font-mono">
+                        ✓ Committed: {fmt(committed[o.id])} AED
+                      </div>
+                    )}
                     <button
-                      onClick={() => { setSelected(o); setPledge(''); }}
+                      onClick={() => openFund(o)}
                       className="w-full bg-gradient-to-r from-amber-600 to-yellow-600 hover:brightness-110 text-white font-bold py-2.5 rounded-xl text-xs uppercase tracking-wide cursor-pointer transition-all shadow-lg"
                     >
-                      💰 Pledge Capital
+                      🔍 Analyze &amp; Fund
                     </button>
-                  )}
+                  </div>
                 </div>
               );
             })}
@@ -406,19 +437,155 @@ export default function InvestorPortal() {
         )}
       </main>
 
-      {/* Pledge modal */}
+      {/* Analyze & Fund modal — details → sign smart contract → receipt */}
       {selected && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setSelected(null)}>
-          <div className="bg-[#111317] border border-zinc-850 rounded-2xl p-6 w-full max-w-sm space-y-4 text-left" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-sm font-bold text-zinc-100">Pledge Capital to {selected.name}</h3>
-            <p className="text-[11px] text-zinc-500 leading-normal font-light">Founder {selected.founder} is raising {fmt(selected.ask)} AED for {selected.equity}% equity (target ROI {selected.roi}).</p>
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[10px] uppercase font-bold text-zinc-550">Commitment Amount (AED) *</label>
-              <input type="number" value={pledge} onChange={(e) => setPledge(e.target.value)} placeholder="e.g. 10000" className="bg-zinc-950 border border-zinc-850 focus:border-amber-500 rounded-xl p-3 text-xs text-zinc-300 outline-none" autoFocus />
+        <div
+          className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => { if (fundStep !== 'signing') closeFund(); }}
+        >
+          <div
+            className="bg-[#111317] border border-zinc-800 rounded-2xl w-full max-w-md text-left shadow-2xl overflow-hidden animate-fadeIn"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between gap-3 px-6 py-4 border-b border-zinc-850 bg-[#0d0f12]">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <span className="text-lg">👑</span>
+                <div className="min-w-0">
+                  <h3 className="text-sm font-bold text-zinc-100 truncate">{selected.name}</h3>
+                  <p className="text-[10px] text-zinc-500 truncate">👤 {selected.founder} · 📍 {selected.region}</p>
+                </div>
+              </div>
+              {fundStep !== 'signing' && (
+                <button onClick={closeFund} className="text-zinc-500 hover:text-zinc-300 cursor-pointer shrink-0 text-sm">✕</button>
+              )}
             </div>
-            <div className="flex gap-2">
-              <button onClick={() => setSelected(null)} className="flex-1 border border-zinc-850 text-zinc-400 text-xs font-bold py-2.5 rounded-xl hover:bg-zinc-900/40 uppercase cursor-pointer">Cancel</button>
-              <button onClick={confirmPledge} className="flex-1 bg-amber-650 hover:bg-amber-600 text-white text-xs font-bold py-2.5 rounded-xl uppercase cursor-pointer transition-all shadow-md">Confirm Pledge</button>
+
+            {/* Step progress bar */}
+            <div className="flex items-center gap-1 px-6 pt-4">
+              {['details', 'signing', 'success'].map((s) => {
+                const order = { details: 0, signing: 1, success: 2 };
+                return (
+                  <div
+                    key={s}
+                    className={`h-1 flex-1 rounded-full transition-all ${
+                      order[s] <= order[fundStep] ? 'bg-amber-500' : 'bg-zinc-800'
+                    }`}
+                  />
+                );
+              })}
+            </div>
+
+            <div className="p-6 space-y-4">
+              {/* STEP 1 — PROJECT DETAILS + COMMIT */}
+              {fundStep === 'details' && (
+                <>
+                  <p className="text-xs text-zinc-400 leading-relaxed font-light">{selected.summary}</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-zinc-950 border border-zinc-850 rounded-xl p-3">
+                      <p className="text-[9px] uppercase text-zinc-500 font-mono">Target Amount</p>
+                      <p className="text-sm font-black text-zinc-100 mt-1">{fmt(selected.ask)} AED</p>
+                    </div>
+                    <div className="bg-zinc-950 border border-zinc-850 rounded-xl p-3">
+                      <p className="text-[9px] uppercase text-zinc-500 font-mono">Equity Offered</p>
+                      <p className="text-sm font-black text-amber-400 mt-1">{selected.equity}%</p>
+                    </div>
+                    <div className="bg-zinc-950 border border-zinc-850 rounded-xl p-3">
+                      <p className="text-[9px] uppercase text-zinc-500 font-mono">Target ROI</p>
+                      <p className="text-sm font-black text-emerald-400 mt-1">{selected.roi}</p>
+                    </div>
+                    <div className="bg-zinc-950 border border-zinc-850 rounded-xl p-3">
+                      <p className="text-[9px] uppercase text-zinc-500 font-mono">Stage</p>
+                      <p className="text-sm font-black text-zinc-200 mt-1">{selected.stage}</p>
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[10px] uppercase font-bold text-zinc-550">Commit Capital (AED) *</label>
+                    <input
+                      type="number"
+                      value={pledge}
+                      onChange={(e) => setPledge(e.target.value)}
+                      placeholder="e.g. 25000"
+                      className="bg-zinc-950 border border-zinc-850 focus:border-amber-500 rounded-xl p-3 text-sm text-zinc-100 outline-none font-mono"
+                      autoFocus
+                    />
+                    <div className="flex gap-2 pt-1">
+                      {[10000, 25000, 50000].map((amt) => (
+                        <button
+                          key={amt}
+                          onClick={() => setPledge(String(amt))}
+                          className="flex-1 text-[10px] font-bold text-zinc-400 border border-zinc-850 hover:border-amber-500/40 hover:text-amber-400 rounded-lg py-1.5 cursor-pointer transition-all font-mono"
+                        >
+                          {fmt(amt)}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <button
+                    onClick={startSigning}
+                    disabled={!pledge || parseFloat(pledge) <= 0}
+                    className="w-full bg-gradient-to-r from-amber-600 to-yellow-600 hover:brightness-110 text-white font-bold py-3 rounded-xl text-xs uppercase tracking-wide cursor-pointer transition-all shadow-lg disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    ✍️ Sign Smart Contract
+                  </button>
+                </>
+              )}
+
+              {/* STEP 2 — SIGNING ANIMATION */}
+              {fundStep === 'signing' && (
+                <div className="py-10 flex flex-col items-center justify-center text-center space-y-5">
+                  <div className="relative w-20 h-20">
+                    <div className="absolute inset-0 rounded-full border-4 border-zinc-800" />
+                    <div className="absolute inset-0 rounded-full border-4 border-amber-500 border-t-transparent animate-spin" />
+                    <div className="absolute inset-0 flex items-center justify-center text-2xl">⛓️</div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <p className="text-sm font-bold text-zinc-100">Signing Smart Contract…</p>
+                    <p className="text-[11px] text-zinc-500 font-mono">Broadcasting to Eco Ledger · awaiting confirmations</p>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 bg-amber-500 rounded-full animate-bounce [animation-delay:-0.3s]" />
+                    <span className="w-2 h-2 bg-amber-500 rounded-full animate-bounce [animation-delay:-0.15s]" />
+                    <span className="w-2 h-2 bg-amber-500 rounded-full animate-bounce" />
+                  </div>
+                </div>
+              )}
+
+              {/* STEP 3 — SUCCESS + RECEIPT */}
+              {fundStep === 'success' && receipt && (
+                <div className="space-y-4">
+                  <div className="flex flex-col items-center text-center space-y-2">
+                    <div className="w-14 h-14 rounded-full bg-emerald-500/15 border border-emerald-500/40 flex items-center justify-center text-3xl">✓</div>
+                    <p className="text-sm font-bold text-zinc-100">Investment Confirmed</p>
+                    <p className="text-[11px] text-zinc-500">Your capital is now committed and on-chain.</p>
+                  </div>
+                  <div className="bg-zinc-950 border border-zinc-850 rounded-xl p-4 space-y-2.5 font-mono text-[11px]">
+                    {[
+                      ['Receipt ID', receipt.id],
+                      ['Project', receipt.project],
+                      ['Amount', `${fmt(receipt.amount)} AED`],
+                      ['Equity Stake', `${receipt.equity}%`],
+                      ['Target ROI', receipt.roi],
+                      ['Date', receipt.date],
+                    ].map(([k, v]) => (
+                      <div key={k} className="flex justify-between gap-3">
+                        <span className="text-zinc-500">{k}</span>
+                        <span className="text-zinc-200 font-bold text-right truncate">{v}</span>
+                      </div>
+                    ))}
+                    <div className="flex justify-between gap-3 pt-2 border-t border-zinc-850">
+                      <span className="text-zinc-500">Tx Hash</span>
+                      <span className="text-emerald-400 truncate">{receipt.txHash}</span>
+                    </div>
+                  </div>
+                  <button
+                    onClick={closeFund}
+                    className="w-full bg-emerald-700 hover:bg-emerald-600 text-white font-bold py-3 rounded-xl text-xs uppercase cursor-pointer transition-all shadow-md"
+                  >
+                    Done
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>

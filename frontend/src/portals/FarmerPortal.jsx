@@ -205,7 +205,7 @@ const NAV_ITEMS = [
   { id: 'eco-grid', icon: '⚡💧', label: 'Eco-Grid', group: 'Farm Operations' },
   { id: 'compare', icon: '⚖️', label: 'Crop Compare', group: 'Farm Operations' },
   { id: 'eco-learn', icon: '📚', label: 'Eco-Learn', group: 'Farm Operations' },
-  { id: 'tools-library', icon: '🔧', label: 'Tools Share', group: 'Farm Operations' },
+  { id: 'tools-library', icon: '🔧', label: 'Eco Souq (Tools)', group: 'Farm Operations' },
   { id: 'eco-launch', icon: '🚀', label: 'Entrepreneur Hub', group: 'Grow & Trade' },
   { id: 'eco-credits', icon: '🪙', label: 'Eco Credits', group: 'Grow & Trade' },
   { id: 'scan', icon: '📷', label: 'Scan Docs', group: 'Grow & Trade' },
@@ -418,16 +418,20 @@ export default function FarmerPortal() {
 
   // Farm Tools Sharing Library State
   const [toolsList, setToolsList] = useState([
-    { id: 'TL-01', name: 'Tractor Rotary Tiller', icon: '🚜', owner: 'Jassim Farm', cost: 50, status: 'Available' },
-    { id: 'TL-02', name: 'Soil pH Sensor Kit', icon: '🧪', owner: 'Hatta Hub', cost: 10, status: 'Available' },
-    { id: 'TL-03', name: 'Date Palm Ladder (High)', icon: '🧗', owner: 'Saeed Al Mansouri', cost: 15, status: 'Borrowed' },
-    { id: 'TL-04', name: 'Drip Irrigation Pump', icon: '🔧', owner: 'Rashid Al Bedwawi', cost: 30, status: 'Available' }
+    { id: 'TL-01', name: 'Tractor Rotary Tiller', icon: '🚜', owner: 'Jassim Farm', cost: 50, status: 'Available', category: 'Machinery', type: 'Rent' },
+    { id: 'TL-02', name: 'Soil pH Sensor Kit', icon: '🧪', owner: 'Hatta Hub', cost: 10, status: 'Available', category: 'Sensors', type: 'Borrow' },
+    { id: 'TL-03', name: 'Date Palm Ladder (High)', icon: '🧗', owner: 'Saeed Al Mansouri', cost: 15, status: 'Borrowed', category: 'Harvesting', type: 'Borrow' },
+    { id: 'TL-04', name: 'Drip Irrigation Pump', icon: '🔧', owner: 'Rashid Al Bedwawi', cost: 30, status: 'Available', category: 'Irrigation', type: 'Rent' }
   ]);
   const [borrowMsg, setBorrowMsg] = useState('');
   const [borrowErr, setBorrowErr] = useState('');
   const [newToolName, setNewToolName] = useState('');
   const [newToolCost, setNewToolCost] = useState('');
   const [newToolIcon, setNewToolIcon] = useState('🔧');
+  const [newToolCategory, setNewToolCategory] = useState('Machinery');
+  const [newToolType, setNewToolType] = useState('Rent');
+  const [toolsCategoryFilter, setToolsCategoryFilter] = useState('All');
+  const [toolsTypeFilter, setToolsTypeFilter] = useState('All');
 
   // ========================
   // ECO-CARE STATE
@@ -511,21 +515,82 @@ export default function FarmerPortal() {
     }
   };
 
-  // Employee task assignments — seeded from each staff member's default task
-  const [empTasks, setEmpTasks] = useState(() =>
-    EMPLOYEES.staff.reduce((acc, e) => { acc[e.id] = e.task ? [e.task] : []; return acc; }, {})
-  );
+  // Employee roster & task assignments — loaded/saved to localStorage
+  const [staffList, setStaffList] = useState(() => {
+    const saved = localStorage.getItem('eco_employees_staff');
+    if (saved) return JSON.parse(saved);
+    return [
+      { id: 'EMP-01', name: 'Rahul Kumar', role: 'Farm Supervisor', avatar: 'RK', status: 'On Duty', attendance: 96, wage: 4200, shift: '06:00 – 14:00' },
+      { id: 'EMP-02', name: 'Bilal Ahmed', role: 'Irrigation Technician', avatar: 'BA', status: 'On Duty', attendance: 92, wage: 3600, shift: '05:00 – 13:00' },
+      { id: 'EMP-03', name: 'Maria Santos', role: 'Livestock Caretaker', avatar: 'MS', status: 'On Leave', attendance: 88, wage: 3400, shift: '07:00 – 15:00' },
+      { id: 'EMP-04', name: 'Ramesh Kumar', role: 'Senior Farm Hand', avatar: 'RK', status: 'On Duty', attendance: 96, wage: 4680, shift: '06:00 – 14:00' },
+      { id: 'EMP-05', name: 'Anwar Hossain', role: 'Greenhouse Assistant', avatar: 'AH', status: 'Off Duty', attendance: 85, wage: 2900, shift: '14:00 – 22:00' },
+      { id: 'EMP-06', name: 'Priya Nair', role: 'Packhouse & Sales', avatar: 'PN', status: 'On Duty', attendance: 94, wage: 3300, shift: '08:00 – 16:00' },
+    ];
+  });
+
+  const [empTasks, setEmpTasks] = useState(() => {
+    const saved = localStorage.getItem('eco_employees_tasks');
+    if (saved) return JSON.parse(saved);
+    return {
+      'EMP-01': ['Oversee date palm block A'],
+      'EMP-02': ['Drip system maintenance'],
+      'EMP-03': ['Goat & sheep feeding'],
+      'EMP-04': ['Irrigate east date palm sector', 'Inspect bee colonies (boxes 1–10)', 'Sort & pack Khalas dates for resort order'],
+      'EMP-05': ['Seedling nursery care'],
+      'EMP-06': ['Pack Eco-Market orders'],
+    };
+  });
+
   const [taskDrafts, setTaskDrafts] = useState({});
+
+  // Sync staffList & empTasks state changes to localStorage
+  useEffect(() => {
+    localStorage.setItem('eco_employees_staff', JSON.stringify(staffList));
+  }, [staffList]);
+
+  useEffect(() => {
+    localStorage.setItem('eco_employees_tasks', JSON.stringify(empTasks));
+  }, [empTasks]);
+
+  // Modal State for adding employee
+  const [showAddEmpModal, setShowAddEmpModal] = useState(false);
+  const [newEmpName, setNewEmpName] = useState('');
+  const [newEmpRole, setNewEmpRole] = useState('Farm Hand');
+  const [newEmpWage, setNewEmpWage] = useState(3000);
+  const [newEmpShift, setNewEmpShift] = useState('06:00 – 14:00');
 
   const addEmployeeTask = (empId) => {
     const text = (taskDrafts[empId] || '').trim();
     if (!text) return;
-    setEmpTasks((prev) => ({ ...prev, [empId]: [...(prev[empId] || []), text] }));
+    const nextTasks = [...(empTasks[empId] || []), text];
+    setEmpTasks((prev) => ({ ...prev, [empId]: nextTasks }));
     setTaskDrafts((prev) => ({ ...prev, [empId]: '' }));
   };
 
   const removeEmployeeTask = (empId, index) => {
-    setEmpTasks((prev) => ({ ...prev, [empId]: prev[empId].filter((_, i) => i !== index) }));
+    const nextTasks = empTasks[empId].filter((_, i) => i !== index);
+    setEmpTasks((prev) => ({ ...prev, [empId]: nextTasks }));
+  };
+
+  const handleAddEmployeeSubmit = (e) => {
+    e.preventDefault();
+    if (!newEmpName.trim()) return;
+    const newId = `EMP-${String(staffList.length + 1).padStart(2, '0')}`;
+    const newEmpObj = {
+      id: newId,
+      name: newEmpName,
+      role: newEmpRole,
+      avatar: newEmpName.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2),
+      status: 'Off Duty',
+      attendance: 100,
+      wage: Number(newEmpWage),
+      shift: newEmpShift
+    };
+    setStaffList([...staffList, newEmpObj]);
+    setEmpTasks(prev => ({ ...prev, [newId]: [] }));
+    setShowAddEmpModal(false);
+    setNewEmpName('');
   };
 
   // ========================
@@ -2402,8 +2467,21 @@ export default function FarmerPortal() {
 
   const renderEmployees = () => {
     const statusTone = (s) => s === 'On Duty' ? 'text-[#4ade80] bg-emerald-500/10 border-emerald-500/30' : s === 'On Leave' ? 'text-amber-400 bg-amber-500/10 border-amber-500/30' : 'text-zinc-400 bg-zinc-500/10 border-zinc-500/30';
-    const onDuty = EMPLOYEES.staff.filter(e => e.status === 'On Duty').length;
-    const avgAttendance = Math.round(EMPLOYEES.staff.reduce((a, e) => a + e.attendance, 0) / EMPLOYEES.staff.length);
+    const onDuty = staffList.filter(e => e.status === 'On Duty').length;
+    const avgAttendance = Math.round(staffList.reduce((a, e) => a + e.attendance, 0) / staffList.length);
+    const totalPayroll = staffList.reduce((a, e) => a + e.wage, 0);
+
+    const handlePaySalary = (name, wage) => {
+      alert(`💸 Wage Payment Successful!\n\nMonthly salary of ${wage.toLocaleString()} AED paid to ${name}.\nTransaction has been successfully committed to the Ministry Agricultural Ledger.`);
+    };
+
+    const handleMessageEmployee = (name) => {
+      const text = prompt(`Message ${name}:`, 'Hello, please inspect irrigation sector B today.');
+      if (text) {
+        alert(`✉️ Message sent to ${name}: "${text}"`);
+      }
+    };
+
     return (
       <div className="max-w-6xl mx-auto w-full space-y-6">
         <div className="flex flex-wrap justify-between items-center gap-3 bg-[#15171e] border border-zinc-800/60 p-4 rounded-2xl">
@@ -2414,7 +2492,10 @@ export default function FarmerPortal() {
               <p className="text-[10px] text-zinc-400 font-mono">STAFF · ATTENDANCE &amp; PAYROLL MANAGEMENT</p>
             </div>
           </div>
-          <button className="bg-[#247055] hover:bg-emerald-600 text-white font-bold py-2.5 px-5 rounded-xl text-xs transition-all flex items-center gap-2 shadow-lg shadow-emerald-900/20">
+          <button
+            onClick={() => setShowAddEmpModal(true)}
+            className="bg-[#247055] hover:bg-emerald-600 text-white font-bold py-2.5 px-5 rounded-xl text-xs transition-all flex items-center gap-2 shadow-lg shadow-emerald-900/20 border-0 cursor-pointer"
+          >
             <span>+</span> Add Employee
           </button>
         </div>
@@ -2422,12 +2503,12 @@ export default function FarmerPortal() {
         {/* KPI row */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {[
-            { label: 'Total Staff', value: EMPLOYEES.staff.length, icon: '👥', tone: 'text-zinc-100' },
+            { label: 'Total Staff', value: staffList.length, icon: '👥', tone: 'text-zinc-100' },
             { label: 'On Duty Now', value: onDuty, icon: '✅', tone: 'text-[#4ade80]' },
             { label: 'Avg Attendance', value: `${avgAttendance}%`, icon: '📅', tone: 'text-blue-400' },
-            { label: 'Monthly Payroll', value: `${EMPLOYEES.monthlyPayroll.toLocaleString()} ${EMPLOYEES.currency}`, icon: '💵', tone: 'text-[#c2964b]' },
+            { label: 'Monthly Payroll', value: `${totalPayroll.toLocaleString()} AED`, icon: '💵', tone: 'text-[#c2964b]' },
           ].map((s) => (
-            <div key={s.label} className="bg-[#15171e] border border-zinc-800/60 rounded-2xl p-4">
+            <div key={s.label} className="bg-[#15171e] border border-zinc-800/60 rounded-2xl p-4 text-left">
               <div className="flex items-center justify-between">
                 <span className="text-[10px] uppercase font-bold tracking-wider text-zinc-500">{s.label}</span>
                 <span className="text-base">{s.icon}</span>
@@ -2438,8 +2519,8 @@ export default function FarmerPortal() {
         </div>
 
         {/* Staff cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {EMPLOYEES.staff.map((e) => (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
+          {staffList.map((e) => (
             <div key={e.id} className="bg-[#15171e] border border-zinc-800 rounded-2xl p-5 shadow-lg">
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-3">
@@ -2469,7 +2550,7 @@ export default function FarmerPortal() {
                     <button
                       type="button"
                       onClick={() => removeEmployeeTask(e.id, i)}
-                      className="text-zinc-600 hover:text-red-400 text-xs leading-none transition-colors shrink-0"
+                      className="text-zinc-600 hover:text-red-400 text-xs leading-none transition-colors shrink-0 bg-transparent border-0 cursor-pointer"
                       aria-label="Remove task"
                     >✕</button>
                   </div>
@@ -2486,29 +2567,106 @@ export default function FarmerPortal() {
                   <button
                     type="button"
                     onClick={() => addEmployeeTask(e.id)}
-                    className="text-[10px] font-bold text-emerald-400 bg-emerald-600/10 hover:bg-emerald-600/20 border border-emerald-500/30 rounded-lg px-3 py-1.5 transition-all shrink-0"
+                    className="text-[10px] font-bold text-emerald-400 bg-emerald-600/10 hover:bg-emerald-600/20 border border-emerald-500/30 rounded-lg px-3 py-1.5 transition-all shrink-0 cursor-pointer"
                   >+ Add Task</button>
                 </div>
               </div>
 
               <div className="mb-3">
-                <div className="flex justify-between text-[10px] text-zinc-500 mb-1"><span>Attendance</span><span>{e.attendance}%</span></div>
+                <div className="flex justify-between text-[10px] text-zinc-550 mb-1"><span>Attendance</span><span>{e.attendance}%</span></div>
                 <div className="h-1.5 rounded-full bg-zinc-800 overflow-hidden"><div className={`h-full ${e.attendance >= 90 ? 'bg-gradient-to-r from-emerald-500 to-teal-400' : 'bg-amber-500'}`} style={{ width: `${e.attendance}%` }} /></div>
               </div>
 
               <div className="flex items-center justify-between border-t border-zinc-850 pt-3">
                 <div>
-                  <p className="text-[9px] uppercase text-zinc-500 font-bold">Monthly Wage</p>
-                  <p className="text-sm font-black text-[#4ade80]">{e.wage.toLocaleString()} {EMPLOYEES.currency}</p>
+                  <p className="text-[9px] uppercase text-zinc-550 font-bold">Monthly Wage</p>
+                  <p className="text-sm font-black text-[#4ade80]">{e.wage.toLocaleString()} AED</p>
                 </div>
                 <div className="flex gap-2">
-                  <button className="text-[10px] font-bold text-zinc-300 bg-[#1f222d] hover:bg-zinc-700 border border-zinc-700/50 rounded-lg px-3 py-1.5 transition-all">Message</button>
-                  <button className="text-[10px] font-bold text-emerald-400 bg-emerald-600/10 hover:bg-emerald-600/20 border border-emerald-500/30 rounded-lg px-3 py-1.5 transition-all">Pay</button>
+                  <button
+                    onClick={() => handleMessageEmployee(e.name)}
+                    className="text-[10px] font-bold text-zinc-300 bg-[#1f222d] hover:bg-zinc-700 border border-zinc-700/50 rounded-lg px-3 py-1.5 transition-all cursor-pointer"
+                  >Message</button>
+                  <button
+                    onClick={() => handlePaySalary(e.name, e.wage)}
+                    className="text-[10px] font-bold text-emerald-450 bg-emerald-600/10 hover:bg-emerald-600/20 border border-emerald-500/30 rounded-lg px-3 py-1.5 transition-all cursor-pointer"
+                  >Pay</button>
                 </div>
               </div>
             </div>
           ))}
         </div>
+
+        {/* Add Employee Modal */}
+        {showAddEmpModal && (
+          <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-[#15171e] border border-zinc-800 rounded-3xl p-6 max-w-md w-full space-y-4 text-left font-sans shadow-2xl">
+              <div className="flex justify-between items-center">
+                <h3 className="text-sm font-bold text-zinc-100">Add New Employee</h3>
+                <button onClick={() => setShowAddEmpModal(false)} className="text-zinc-550 hover:text-zinc-350 bg-transparent border-0 cursor-pointer">✕</button>
+              </div>
+
+              <form onSubmit={handleAddEmployeeSubmit} className="space-y-4">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[10px] uppercase font-bold text-zinc-500 tracking-wide">Employee Name</label>
+                  <input
+                    type="text"
+                    required
+                    value={newEmpName}
+                    onChange={(ev) => setNewEmpName(ev.target.value)}
+                    placeholder="e.g. Ramesh Kumar"
+                    className="bg-[#0f1115] border border-zinc-800 rounded-xl p-3 text-xs text-zinc-300 outline-none focus:border-emerald-500"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[10px] uppercase font-bold text-zinc-500 tracking-wide">Clearance Role</label>
+                  <input
+                    type="text"
+                    required
+                    value={newEmpRole}
+                    onChange={(ev) => setNewEmpRole(ev.target.value)}
+                    placeholder="e.g. Senior Farm Hand"
+                    className="bg-[#0f1115] border border-zinc-800 rounded-xl p-3 text-xs text-zinc-300 outline-none focus:border-emerald-500"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[10px] uppercase font-bold text-zinc-500 tracking-wide">Monthly Wage (AED)</label>
+                    <input
+                      type="number"
+                      required
+                      value={newEmpWage}
+                      onChange={(ev) => setNewEmpWage(ev.target.value)}
+                      placeholder="4500"
+                      className="bg-[#0f1115] border border-zinc-800 rounded-xl p-3 text-xs text-zinc-300 outline-none focus:border-emerald-500"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[10px] uppercase font-bold text-zinc-500 tracking-wide">Shift Hours</label>
+                    <input
+                      type="text"
+                      required
+                      value={newEmpShift}
+                      onChange={(ev) => setNewEmpShift(ev.target.value)}
+                      placeholder="06:00 – 14:00"
+                      className="bg-[#0f1115] border border-zinc-800 rounded-xl p-3 text-xs text-zinc-300 outline-none focus:border-emerald-500"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  className="w-full bg-[#247055] hover:bg-emerald-600 text-white font-bold py-3 rounded-xl text-xs uppercase tracking-wider transition-all cursor-pointer border-0 mt-2"
+                >
+                  Confirm Registration 🚀
+                </button>
+              </form>
+            </div>
+          </div>
+        )}
       </div>
     );
   };
@@ -4263,18 +4421,18 @@ export default function FarmerPortal() {
       const tool = toolsList.find((t) => t.id === id);
       if (!tool) return;
       if (tool.status === 'Borrowed') {
-        setBorrowErr(`"${tool.name}" is currently borrowed by another farmer. Join the waitlist or try later.`);
+        setBorrowErr(`"${tool.name}" is currently rented by another farmer. Join the waitlist or try later.`);
         setTimeout(() => setBorrowErr(''), 4000);
         return;
       }
       setToolsList((prev) => prev.map((t) => (t.id === id ? { ...t, status: 'Borrowed' } : t)));
-      setBorrowMsg(`✅ "${tool.name}" reserved for ${tool.cost} Eco Credits. Arrange pickup via the Hatta Hub.`);
+      setBorrowMsg(`✅ "${tool.name}" reserved successfully for ${tool.cost} Eco Credits. Pickup scheduled at the Hatta Hub.`);
       setTimeout(() => setBorrowMsg(''), 4000);
     };
 
     const handleReturnTool = (id) => {
       setToolsList((prev) => prev.map((t) => (t.id === id ? { ...t, status: 'Available' } : t)));
-      setBorrowMsg('🔄 Tool returned successfully. Thank you for sharing resources!');
+      setBorrowMsg('🔄 Tool returned successfully to the Eco Souq catalog.');
       setTimeout(() => setBorrowMsg(''), 4000);
     };
 
@@ -4282,12 +4440,12 @@ export default function FarmerPortal() {
       e.preventDefault();
       setBorrowErr('');
       if (!newToolName.trim()) {
-        setBorrowErr('Please enter a tool name to list it for sharing.');
+        setBorrowErr('Please enter a tool name to list it.');
         return;
       }
       const cost = Number(newToolCost);
       if (!newToolCost || Number.isNaN(cost) || cost < 0) {
-        setBorrowErr('Please enter a valid (non-negative) Eco Credit cost.');
+        setBorrowErr('Please enter a valid Eco Credit cost.');
         return;
       }
       const newTool = {
@@ -4297,14 +4455,22 @@ export default function FarmerPortal() {
         owner: name || 'You',
         cost,
         status: 'Available',
+        category: newToolCategory,
+        type: newToolType
       };
       setToolsList((prev) => [newTool, ...prev]);
       setNewToolName('');
       setNewToolCost('');
       setNewToolIcon('🔧');
-      setBorrowMsg(`✅ "${newTool.name}" listed in the shared tools library.`);
+      setBorrowMsg(`✅ "${newTool.name}" listed under ${newToolCategory} in Eco Souq.`);
       setTimeout(() => setBorrowMsg(''), 4000);
     };
+
+    const filteredTools = toolsList.filter((t) => {
+      const matchCat = toolsCategoryFilter === 'All' || t.category === toolsCategoryFilter;
+      const matchType = toolsTypeFilter === 'All' || t.type === toolsTypeFilter;
+      return matchCat && matchType;
+    });
 
     const availableCount = toolsList.filter((t) => t.status === 'Available').length;
 
@@ -4315,14 +4481,14 @@ export default function FarmerPortal() {
           <div className="flex-1">
             <div className="flex justify-between items-center w-full mb-1">
               <h2 className="text-md font-bold text-[#4ade80] flex items-center gap-2">
-                <span>🔧</span> Circular Farm Tools Library
+                <span>🔧</span> Eco Souq — Circular Tools Exchange
               </h2>
               <span className="inline-flex items-center gap-1.5 text-[9px] font-bold bg-[#1b3d34] text-emerald-450 border border-emerald-900/50 px-2.5 py-1.5 rounded-full">
-                ● Challenge 5 Solution
+                ● Challenge 5 Circular Economy
               </span>
             </div>
             <p className="text-xs text-zinc-450 mt-1 font-light leading-relaxed max-w-xl">
-              Borrow and share expensive machinery and equipment with neighbouring farms. Pay with Eco Credits instead of buying new — reducing cost, waste, and idle assets.
+              Borrow, list, and rent expensive machinery and precision farming tools with neighboring farmers using community Eco Credits.
             </p>
           </div>
           <div className="flex gap-3 shrink-0">
@@ -4332,7 +4498,7 @@ export default function FarmerPortal() {
             </div>
             <div className="bg-zinc-950 border border-zinc-850 rounded-2xl px-4 py-3 text-center">
               <span className="block text-xl font-black text-amber-400">{toolsList.length}</span>
-              <span className="text-[9px] uppercase font-bold text-zinc-500 tracking-wider">Total Listed</span>
+              <span className="text-[9px] uppercase font-bold text-zinc-500 tracking-wider">Total Listings</span>
             </div>
           </div>
         </div>
@@ -4348,11 +4514,43 @@ export default function FarmerPortal() {
           </div>
         )}
 
+        {/* Filters Panel */}
+        <div className="bg-[#111317] border border-zinc-850 p-4 rounded-xl flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-zinc-550">Filter Category:</span>
+            <div className="flex gap-1.5">
+              {['All', 'Machinery', 'Sensors', 'Harvesting', 'Irrigation'].map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setToolsCategoryFilter(cat)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border-0 cursor-pointer ${toolsCategoryFilter === cat ? 'bg-[#1b3d34] text-emerald-450 border border-emerald-900/50' : 'bg-zinc-950 text-zinc-450 hover:text-zinc-200'}`}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-zinc-550">Type:</span>
+            <div className="flex gap-1.5">
+              {['All', 'Rent', 'Borrow'].map((tType) => (
+                <button
+                  key={tType}
+                  onClick={() => setToolsTypeFilter(tType)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border-0 cursor-pointer ${toolsTypeFilter === tType ? 'bg-[#1b3d34] text-emerald-450 border border-emerald-900/50' : 'bg-zinc-950 text-zinc-450 hover:text-zinc-200'}`}
+                >
+                  {tType}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* List a tool form */}
           <div className="bg-[#15171e] border border-zinc-800 p-5 rounded-2xl space-y-4 self-start">
             <h3 className="text-sm font-bold text-zinc-100 flex items-center gap-2">
-              <span>➕</span> List a Tool for Sharing
+              <span>➕</span> List a Tool in Eco Souq
             </h3>
             <form onSubmit={handleAddTool} className="space-y-3">
               <div className="flex flex-col gap-1">
@@ -4365,6 +4563,35 @@ export default function FarmerPortal() {
                   className="bg-zinc-950 border border-zinc-850 hover:border-zinc-700 text-xs text-zinc-300 p-2.5 rounded-xl outline-none focus:border-emerald-500"
                 />
               </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1">
+                  <label className="text-[9px] uppercase font-bold text-zinc-500">Category</label>
+                  <select
+                    value={newToolCategory}
+                    onChange={(e) => setNewToolCategory(e.target.value)}
+                    className="bg-zinc-950 border border-zinc-850 text-xs text-zinc-350 p-2.5 rounded-xl outline-none"
+                  >
+                    <option value="Machinery">Machinery</option>
+                    <option value="Sensors">Sensors</option>
+                    <option value="Harvesting">Harvesting</option>
+                    <option value="Irrigation">Irrigation</option>
+                  </select>
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="text-[9px] uppercase font-bold text-zinc-500">Listing Type</label>
+                  <select
+                    value={newToolType}
+                    onChange={(e) => setNewToolType(e.target.value)}
+                    className="bg-zinc-950 border border-zinc-850 text-xs text-zinc-350 p-2.5 rounded-xl outline-none"
+                  >
+                    <option value="Rent">Rent</option>
+                    <option value="Borrow">Borrow</option>
+                  </select>
+                </div>
+              </div>
+
               <div className="flex flex-col gap-1">
                 <label className="text-[9px] uppercase font-bold text-zinc-500">Icon</label>
                 <div className="flex flex-wrap gap-1.5">
@@ -4373,13 +4600,14 @@ export default function FarmerPortal() {
                       type="button"
                       key={ic}
                       onClick={() => setNewToolIcon(ic)}
-                      className={`w-9 h-9 rounded-xl border text-lg transition-all ${newToolIcon === ic ? 'bg-emerald-500/15 border-emerald-500/40' : 'bg-zinc-950 border-zinc-850 hover:border-zinc-700'}`}
+                      className={`w-9 h-9 rounded-xl border text-lg transition-all border-0 cursor-pointer ${newToolIcon === ic ? 'bg-emerald-500/15 border-emerald-500/40' : 'bg-zinc-950 border-zinc-855 hover:border-zinc-700'}`}
                     >
                       {ic}
                     </button>
                   ))}
                 </div>
               </div>
+
               <div className="flex flex-col gap-1">
                 <label className="text-[9px] uppercase font-bold text-zinc-500">Borrow Cost (Eco Credits)</label>
                 <input
@@ -4393,7 +4621,7 @@ export default function FarmerPortal() {
               </div>
               <button
                 type="submit"
-                className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-4 rounded-xl text-xs uppercase tracking-wider cursor-pointer border-0 mt-1"
+                className="w-full bg-[#247055] hover:bg-emerald-600 text-white font-bold py-3 px-4 rounded-xl text-xs uppercase tracking-wider cursor-pointer border-0 mt-1"
               >
                 Publish Listing 📤
               </button>
@@ -4402,18 +4630,22 @@ export default function FarmerPortal() {
 
           {/* Tools grid */}
           <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4 self-start">
-            {toolsList.map((t) => (
-              <div key={t.id} className="bg-zinc-900/35 border border-zinc-800/80 p-5 rounded-2xl flex flex-col justify-between gap-4 hover:border-zinc-700/60 transition-all">
+            {filteredTools.map((t) => (
+              <div key={t.id} className="bg-[#15171e] border border-zinc-800 p-5 rounded-2xl flex flex-col justify-between gap-4 hover:border-zinc-750 transition-all">
                 <div className="flex items-start gap-3">
                   <span className="text-3xl bg-zinc-950 border border-zinc-850 p-2.5 rounded-2xl">{t.icon}</span>
                   <div className="flex-1">
                     <div className="flex justify-between items-start gap-2">
-                      <h4 className="text-sm font-bold text-zinc-100 leading-tight">{t.name}</h4>
+                      <h4 className="text-sm font-bold text-zinc-200 leading-tight">{t.name}</h4>
                       <span className={`text-[9px] uppercase font-bold px-2 py-0.5 rounded border shrink-0 ${t.status === 'Available' ? 'bg-emerald-500/10 text-emerald-450 border-emerald-500/20' : 'bg-amber-500/10 text-amber-450 border-amber-500/20'}`}>
                         {t.status}
                       </span>
                     </div>
-                    <p className="text-[10px] text-zinc-500 mt-1">Owner: <span className="text-zinc-300 font-semibold">{t.owner}</span></p>
+                    <div className="flex gap-2 mt-1.5">
+                      <span className="text-[9px] uppercase font-bold text-zinc-550 bg-zinc-950 border border-zinc-850 px-2 py-0.5 rounded-full">{t.category}</span>
+                      <span className="text-[9px] uppercase font-bold text-[#c2a14e] bg-zinc-950 border border-zinc-850 px-2 py-0.5 rounded-full">{t.type}</span>
+                    </div>
+                    <p className="text-[10px] text-zinc-500 mt-2">Listed by: <span className="text-zinc-350 font-semibold">{t.owner}</span></p>
                     <span className="inline-flex items-center gap-1.5 mt-2 bg-emerald-500/10 text-emerald-450 border border-emerald-500/20 px-2 py-0.5 rounded text-[9px] font-bold">
                       🪙 {t.cost} Credits
                     </span>
