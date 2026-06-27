@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Eco Connect - Sustainability & Community Bridge UAE</title>
+  <meta name="description" content="Connecting UAE's remote areas with major cities through a dual marketplace, responsible ecotourism, AI telehealth, and automated environmental reporting.">
+  
+  <!-- CSS Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- ==========================================================================
+       LANDING PAGE
+       ========================================================================== -->
+  <section id="landing-page">
+    <div class="landing-bg"></div>
+    <img src="assets/eco_hero_bg.png" alt="Majestic Eco Tree in UAE Desert" class="landing-image-layer" id="landing-hero-img">
+    <div class="landing-overlay"></div>
+    
+    <div class="landing-container">
+      <header class="landing-header">
+        <!-- Leaf/Eco Tree Emblem Icon -->
+        <svg class="landing-logo" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2C6.48 2 2 6.48 2 12c0 4.42 2.87 8.17 6.84 9.39.18.04.33-.06.33-.24v-2.07c0-.5-.19-1-1.07-1-1.5 0-3-1-3-3 0-1.5 1.5-2 1.5-2s-.5-1 .5-2 1.5.5 1.5.5 0-1.5 1-1.5 1.5 1.5 1.5 1.5S10 8 11.5 8s1.5 1.5 1.5 1.5.5-1.5 1.5-1.5 1 1 1 2c0 2-1.5 3-3 3-.88 0-1.07.5-1.07 1v2.07c0 .18.15.28.33.24C19.13 20.17 22 16.42 22 12c0-5.52-4.48-10-10-10zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" />
+          <path d="M12 6c-3.31 0-6 2.69-6 6 0 1.66.67 3.16 1.76 4.24l1.42-1.42C8.43 14.07 8 13.09 8 12c0-2.21 1.79-4 4-4s4 1.79 4 4c0 1.09-.43 2.07-1.18 2.82l1.42 1.42C17.33 15.16 18 13.66 18 12c0-3.31-2.69-6-6-6z" />
+          <circle cx="12" cy="12" r="2" />
+        </svg>
+        <span class="landing-brand">ECO CONNECT</span>
+      </header>
+      
+      <div class="landing-hero">
+        <h1>Bridges Sustainability & <span>Remote Communities</span></h1>
+        <p>Connecting Hatta, Liwa, and Al Dhafra directly with UAE's urban centers. Empowering local economies, encouraging responsible ecotourism, and providing AI-driven wellness and environment diagnostics.</p>
+      </div>
+      
+      <div class="landing-cta">
+        <button class="btn-primary" id="launch-app-btn" onclick="launchDashboard()">
+          <span>Launch Platform</span>
+          <!-- Arrow Icon -->
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+            <polyline points="12 5 19 12 12 19"></polyline>
+          </svg>
+        </button>
+        <button class="btn-secondary" onclick="scrollToStats()">Learn More</button>
+      </div>
+      
+      <div class="stats-grid" id="stats-section">
+        <div class="stat-card glass-panel">
+          <div class="stat-number" id="stat-co2">12,450 kg</div>
+          <div class="stat-label">CO2 Emitted Offset</div>
+        </div>
+        <div class="stat-card glass-panel">
+          <div class="stat-number" id="stat-economy">485,000 AED</div>
+          <div class="stat-label">Community Income Generated</div>
+        </div>
+        <div class="stat-card glass-panel">
+          <div class="stat-number" id="stat-health">1,820+</div>
+          <div class="stat-label">AI Health Diagnostic Scans</div>
+        </div>
+        <div class="stat-card glass-panel">
+          <div class="stat-number" id="stat-reports">340+</div>
+          <div class="stat-label">Municipal Action Reports</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==========================================================================
+       DASHBOARD PAGE CONTAINER
+       ========================================================================== -->
+  <section id="dashboard-page" style="display: none;">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar glass-panel">
+      <div class="sidebar-logo">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2C6.48 2 2 6.48 2 12c0 4.42 2.87 8.17 6.84 9.39.18.04.33-.06.33-.24v-2.07c0-.5-.19-1-1.07-1-1.5 0-3-1-3-3 0-1.5 1.5-2 1.5-2s-.5-1 .5-2 1.5.5 1.5.5 0-1.5 1-1.5 1.5 1.5 1.5 1.5S10 8 11.5 8s1.5 1.5 1.5 1.5.5-1.5 1.5-1.5 1 1 1 2c0 2-1.5 3-3 3-.88 0-1.07.5-1.07 1v2.07c0 .18.15.28.33.24C19.13 20.17 22 16.42 22 12c0-5.52-4.48-10-10-10zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" />
+        </svg>
+        <span class="sidebar-brand">Eco Connect</span>
+      </div>
+      
+      <nav class="sidebar-nav">
+        <button class="nav-item active" id="nav-marketplace" onclick="setActiveTab('marketplace')">
+          <svg viewBox="0 0 24 24">
+            <rect x="3" y="3" width="7" height="9" rx="1"></rect>
+            <rect x="14" y="3" width="7" height="5" rx="1"></rect>
+            <rect x="14" y="12" width="7" height="9" rx="1"></rect>
+            <rect x="3" y="16" width="7" height="5" rx="1"></rect>
+          </svg>
+          <span>Marketplace</span>
+        </button>
+        
+        <button class="nav-item" id="nav-tourism" onclick="setActiveTab('tourism')">
+          <svg viewBox="0 0 24 24">
+            <path d="M12 2L2 22h20L12 2z"></path>
+            <circle cx="12" cy="13" r="3"></circle>
+          </svg>
+          <span>Eco-Tourism</span>
+        </button>
+        
+        <button class="nav-item" id="nav-care" onclick="setActiveTab('care')">
+          <svg viewBox="0 0 24 24">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+            <path d="M8 11h8"></path>
+            <path d="M12 7v8"></path>
+          </svg>
+          <span>AI Care & Env</span>
+        </button>
+      </nav>
+      
+      <div class="sidebar-footer">
+        <div class="avatar">UA</div>
+        <div class="user-info">
+          <span class="user-name">User Account</span>
+          <span class="user-role">UAE Resident</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Section Area -->
+    <main class="main-content">
+      <!-- Header bar with settings/controls -->
+      <header class="header-bar glass-panel">
+        <div class="page-title">
+          <h2 id="current-tab-title">Marketplace</h2>
+        </div>
+        
+        <div class="header-controls">
+          <!-- Pin Location selection dropdown -->
+          <div class="location-selector">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+              <circle cx="12" cy="10" r="3"></circle>
+            </svg>
+            <label for="user-location-selector">Location:</label>
+            <select id="user-location-selector" onchange="onLocationChange()">
+              <option value="Hatta" selected>Hatta (Dubai)</option>
+              <option value="Liwa">Liwa Oasis (Abu Dhabi)</option>
+              <option value="Al Ain">Al Ain (Eastern Region)</option>
+              <option value="Madinat Zayed">Madinat Zayed (Al Dhafra)</option>
+              <option value="Dubai">Dubai City</option>
+              <option value="Abu Dhabi">Abu Dhabi City</option>
+            </select>
+          </div>
+          
+          <!-- Notifications bell -->
+          <div class="notification-bell" onclick="showNotificationPanel()">
+            <svg viewBox="0 0 24 24">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+              <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+            </svg>
+            <div class="bell-badge"></div>
+          </div>
+        </div>
+      </header>
+
+      <!-- Dynamic Tab Loading Area -->
+      <div class="tab-content-container">
+        
+        <!-- ==========================================================================
+             TAB 1: DUAL DIGITAL MARKETPLACE (ECO SHOP & CIRCULAR HUB)
+             ========================================================================== -->
+        <section id="tab-marketplace" class="tab-section active section-fade">
+          <div class="marketplace-layout">
+            
+            <div class="marketplace-filter-bar glass-panel">
+              <div class="search-input-wrapper">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <input type="text" class="search-input" id="market-search" placeholder="Search date harvests, craft rugs, electronics..." onkeyup="filterMarketplace()">
+              </div>
+              
+              <div class="filter-pills">
+                <button class="filter-pill active" id="pill-all" onclick="filterMarketType('all')">All Resources</button>
+                <button class="filter-pill" id="pill-sell" onclick="filterMarketType('sell')">Local Sales (Residents)</button>
+                <button class="filter-pill" id="pill-donate" onclick="filterMarketType('donate')">Corporate Donations</button>
+              </div>
+              
+              <button class="btn-primary" onclick="openAddListingModal()" style="padding: 10px 20px; font-size: 0.9rem;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px;">
+                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                Post Resource
+              </button>
+            </div>
+            
+            <!-- Grid displaying shop/donation products -->
+            <div class="market-grid" id="market-grid-container">
+              <!-- Loaded dynamically by app.js -->
+            </div>
+          </div>
+        </section>
+
+        <!-- ==========================================================================
+             TAB 2: RESPONSIBLE ECO-TOURISM (ECO TOUR)
+             ========================================================================== -->
+        <section id="tab-tourism" class="tab-section section-fade">
+          <div class="tour-layout">
+            
+            <!-- Left Side: List of Ecotours -->
+            <div class="tour-list-container">
+              <h3 style="font-size: 1.4rem; margin-bottom: 5px;">Available Ecotourism Expeditions</h3>
+              <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 15px;">Book responsible tours hosted entirely by local residents. 100% of proceeds go directly to local families and ecosystem maintenance.</p>
+              
+              <div id="tour-cards-container" style="display:flex; flex-direction:column; gap: 20px;">
+                <!-- Loaded dynamically by app.js -->
+              </div>
+            </div>
+            
+            <!-- Right Side: Booking Form and Guides Profile list -->
+            <div class="tour-sidebar">
+              <!-- Tour Booking Card -->
+              <div class="booking-card glass-panel">
+                <h3>Book Ecotourism Trip</h3>
+                <form id="booking-form" onsubmit="handleTourBooking(event)">
+                  <div class="form-group">
+                    <label for="booking-select-tour">Select Tour Destination</label>
+                    <select id="booking-select-tour" class="form-input" onchange="calculateBookingPrice()" required>
+                      <!-- Options loaded dynamically -->
+                    </select>
+                  </div>
+                  
+                  <div class="form-group">
+                    <label for="booking-select-guide">Assign Local Guide</label>
+                    <select id="booking-select-guide" class="form-input" required>
+                      <!-- Options loaded dynamically -->
+                    </select>
+                  </div>
+                  
+                  <div class="form-group" style="display: grid; grid-template-columns: 1.2fr 0.8fr; gap:10px;">
+                    <div>
+                      <label for="booking-date">Date</label>
+                      <input type="date" id="booking-date" class="form-input" required>
+                    </div>
+                    <div>
+                      <label for="booking-guests">Visitors</label>
+                      <input type="number" id="booking-guests" class="form-input" min="1" max="10" value="2" onchange="calculateBookingPrice()" required>
+                    </div>
+                  </div>
+                  
+                  <!-- Dynamic pricing summary display -->
+                  <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--card-border); padding: 15px; border-radius: var(--border-radius-sm); margin-bottom: 20px; display:flex; justify-content:space-between; align-items:center;">
+                    <span style="font-size:0.85rem; color:var(--text-muted);">Estimated Price:</span>
+                    <span id="booking-price-calc" style="font-family:'Outfit', sans-serif; font-size:1.3rem; font-weight:700; color:var(--accent-sand);">0 AED</span>
+                  </div>
+                  
+                  <button type="submit" class="btn-book">Confirm Eco-Booking</button>
+                </form>
+              </div>
+              
+              <!-- Resident Guides Registry -->
+              <div class="booking-card glass-panel" style="padding: 20px;">
+                <h3 style="font-size: 1.15rem; margin-bottom: 15px;">Local Guides Registry</h3>
+                <div class="guides-list" id="guides-list-container">
+                  <!-- Loaded dynamically by app.js -->
+                </div>
+              </div>
+            </div>
+            
+          </div>
+        </section>
+
+        <!-- ==========================================================================
+             TAB 3: AI TELE-HEALTH & ENVIRONMENT (ECO CARE)
+             ========================================================================== -->
+        <section id="tab-care" class="tab-section section-fade">
+          <div class="telehealth-layout">
+            
+            <!-- Left Side: Interactive Telehealth Camera & HUD viewport -->
+            <div class="viewport-panel glass-panel">
+              <div class="viewport-header">
+                <div style="display:flex; align-items:center; gap: 10px;">
+                  <span id="viewport-active-scan-type" style="font-weight:600; font-size:0.9rem;">Telemedicine - Vital Diagnostics</span>
+                </div>
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <div class="recording-dot" id="recording-dot-indicator"></div>
+                  <div class="status-badge live" id="viewport-status-badge">CAMERA OFFLINE</div>
+                </div>
+              </div>
+              
+              <!-- Camera view wrapper (Simulates live scanning hud) -->
+              <div class="viewport-wrapper">
+                <!-- Fallback camera scan vector design -->
+                <div class="viewport-placeholder" id="viewport-placeholder-hud">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                    <circle cx="12" cy="13" r="4"></circle>
+                  </svg>
+                  <p style="font-size: 0.9rem;">Camera feed suspended.<br><span style="color:var(--accent-sand); font-weight:600; font-size:0.8rem; cursor:pointer;" onclick="toggleRealCamera()">Request Device Camera Access</span></p>
+                </div>
+                
+                <!-- Real Video Element (Hidden until granted) -->
+                <video id="viewport-video-stream" class="viewport-video" autoplay playsinline style="display:none;"></video>
+                
+                <!-- Canvas for scanline effects / simulated neural networks overlays -->
+                <canvas id="neural-overlay-canvas" style="position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:2;"></canvas>
+                
+                <!-- Scanning animation laser line -->
+                <div class="viewport-scanline" id="scanline-laser"></div>
+                
+                <!-- Reticle HUD overlay indicators -->
+                <div class="viewport-hud">
+                  <div class="hud-corners-top-left"></div>
+                  <div class="hud-corners-top-right"></div>
+                  <div class="hud-corners-bottom-left"></div>
+                  <div class="hud-corners-bottom-right"></div>
+                  
+                  <div class="hud-data-top">
+                    <span id="hud-latlong">GPS: 24.4539° N, 54.3773° E</span>
+                    <span id="hud-timestamp">UTC+4: 22:08</span>
+                  </div>
+                  <div class="hud-data-bottom">
+                    <span>AI COMPUTE: ACTIVE</span>
+                    <span id="hud-fps">STREAM: STABLE</span>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Buttons to run diagnostics -->
+              <div class="viewport-footer">
+                <button class="btn-scan-option active" id="btn-scan-vitals" onclick="selectDiagnosticMode('vitals')">
+                  <svg viewBox="0 0 24 24">
+                    <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+                  </svg>
+                  <span>Vital Scan</span>
+                </button>
+                
+                <button class="btn-scan-option" id="btn-scan-skin" onclick="selectDiagnosticMode('skin')">
+                  <svg viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <path d="M8 14s1.5 2 4 2 4-2 4-2"></path>
+                    <line x1="9" y1="9" x2="9.01" y2="9"></line>
+                    <line x1="15" y1="9" x2="15.01" y2="9"></line>
+                  </svg>
+                  <span>Dermatology</span>
+                </button>
+                
+                <button class="btn-scan-option" id="btn-scan-soil" onclick="selectDiagnosticMode('soil')">
+                  <svg viewBox="0 0 24 24">
+                    <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                  </svg>
+                  <span>Soil Quality</span>
+                </button>
+                
+                <button class="btn-scan-option" id="btn-scan-water" onclick="selectDiagnosticMode('water')">
+                  <svg viewBox="0 0 24 24">
+                    <path d="M12 22a7 7 0 0 0 7-7c0-4.3-7-11-7-11S5 10.7 5 15a7 7 0 0 0 7 7z"></path>
+                  </svg>
+                  <span>Water Purity</span>
+                </button>
+              </div>
+            </div>
+            
+            <!-- Right Side: AI Telehealth Results OR Environmental Municipality Report Form -->
+            <div class="results-panel">
+              
+              <!-- AI Diagnostics Results Output Panel -->
+              <div class="result-card glass-panel" id="diagnostic-results-box">
+                <h3 id="result-box-title">
+                  <svg viewBox="0 0 24 24">
+                    <line x1="18" y1="20" x2="18" y2="10"></line>
+                    <line x1="12" y1="20" x2="12" y2="4"></line>
+                    <line x1="6" y1="20" x2="6" y2="14"></line>
+                  </svg>
+                  AI Diagnostic Results
+                </h3>
+                
+                <!-- Placeholder when scanner is idle -->
+                <div class="result-placeholder" id="diagnostic-placeholder-msg">
+                  <svg viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 14"></polyline>
+                  </svg>
+                  <p>Select diagnostic scanner, align camera frame target,<br>and click "Trigger AI Analysis Scan".</p>
+                  <button class="btn-primary" onclick="triggerAiScan()" style="padding:10px 20px; font-size:0.9rem;">Trigger AI Analysis Scan</button>
+                </div>
+                
+                <!-- Active scanned data readout -->
+                <div class="result-content" id="diagnostic-details-content">
+                  <div class="result-metric-row">
+                    <div class="result-metric-card">
+                      <div class="metric-label" id="metric-l1">Metric 1</div>
+                      <div class="metric-value" id="metric-v1">-</div>
+                    </div>
+                    <div class="result-metric-card">
+                      <div class="metric-label" id="metric-l2">Metric 2</div>
+                      <div class="metric-value" id="metric-v2">-</div>
+                    </div>
+                  </div>
+                  
+                  <div class="result-metric-row">
+                    <div class="result-metric-card">
+                      <div class="metric-label">Severity Level</div>
+                      <div id="metric-severity-pill">Normal</div>
+                    </div>
+                    <div class="result-metric-card">
+                      <div class="metric-label">Diagnostic Match</div>
+                      <div class="metric-value" id="metric-v4" style="font-size:1.05rem;">98.2% Accuracy</div>
+                    </div>
+                  </div>
+                  
+                  <div class="diag-summary">
+                    <strong style="display:block; margin-bottom:5px; color:var(--accent-sand);">AI Assessment Summary:</strong>
+                    <span id="diagnostic-summary-text">-</span>
+                  </div>
+                  
+                  <div class="diag-recommendations">
+                    <h4>Recommended Actions:</h4>
+                    <ul class="recommendations-list" id="diagnostic-recommendations-list">
+                      <!-- Rendered by JS -->
+                    </ul>
+                  </div>
+                  
+                  <!-- Connect to urban medical doctor or municipal trigger button -->
+                  <div id="diagnostic-cta-button-container" style="margin-top:10px;">
+                    <!-- Managed dynamically -->
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Environmental Municipal Report Form (Tied to soil/water scan actions) -->
+              <div class="env-report-panel glass-panel" id="env-report-submission-box" style="display:none;">
+                <h3>
+                  <svg viewBox="0 0 24 24">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                    <polyline points="10 9 9 9 8 9"></polyline>
+                  </svg>
+                  Submit Environmental Municipality Report
+                </h3>
+                
+                <form id="municipal-report-form" onsubmit="handleMunicipalReport(event)">
+                  <div class="form-group">
+                    <label for="municipal-rep-type">Report Type</label>
+                    <input type="text" id="municipal-rep-type" class="form-input" readonly style="background:rgba(255,255,255,0.01);">
+                  </div>
+                  
+                  <div class="form-group">
+                    <label for="municipal-telemetry">Telemetry Diagnostic Capture</label>
+                    <input type="text" id="municipal-telemetry" class="form-input" readonly style="background:rgba(255,255,255,0.01);">
+                  </div>
+                  
+                  <div class="form-group">
+                    <label for="municipal-authority">Responsible Authority</label>
+                    <input type="text" id="municipal-authority" class="form-input" readonly style="background:rgba(255,255,255,0.01);">
+                  </div>
+                  
+                  <div class="form-group">
+                    <label for="municipal-notes">Observations / Additional Details</label>
+                    <textarea id="municipal-notes" class="form-input" rows="3" placeholder="Describe environmental anomalies, soil drying rate, water odor, or local concerns..." required></textarea>
+                  </div>
+                  
+                  <button type="submit" class="btn-book" style="background:var(--primary-eco); color:var(--text-main);">Submit Formal Municipal Ticket</button>
+                </form>
+              </div>
+              
+            </div>
+            
+          </div>
+        </section>
+
+      </div>
+    </main>
+  </section>
+
+  <!-- ==========================================================================
+       MODAL 1: TRANSACTION INVOICE & ECO-TICKET RECEIPT
+       ========================================================================== -->
+  <div class="modal-overlay" id="receipt-modal">
+    <div class="modal-container glass-panel">
+      <div class="modal-header">
+        <h3 id="receipt-modal-title">Resource Acquisition Receipt</h3>
+        <button class="modal-close" onclick="closeReceiptModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="success-checkmark-box">
+          <div class="success-checkmark">
+            <svg viewBox="0 0 24 24">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </div>
+          <h4 id="receipt-success-heading" style="font-size:1.15rem; font-weight:700;">Transaction Completed Successfully</h4>
+          <p id="receipt-success-msg" style="font-size:0.85rem; color:var(--text-muted);">Your transaction digital ledger entry has been certified.</p>
+        </div>
+        
+        <div class="modal-invoice" id="receipt-invoice-details">
+          <!-- Rendered by JS -->
+        </div>
+      </div>
+      <div style="display:flex; justify-content:flex-end;">
+        <button class="btn-primary" onclick="closeReceiptModal()" style="padding:10px 24px; font-size:0.9rem;">Close Receipt</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL 2: ADD MARKETPLACE RESOURCE LISTING
+       ========================================================================== -->
+  <div class="modal-overlay" id="add-listing-modal">
+    <div class="modal-container glass-panel" style="max-width:550px;">
+      <div class="modal-header">
+        <h3>Post New Resource Listing</h3>
+        <button class="modal-close" onclick="closeAddListingModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="add-listing-form" onsubmit="handlePostListing(event)">
+          <div class="form-group">
+            <label for="list-title">Product / Resource Title</label>
+            <input type="text" id="list-title" class="form-input" placeholder="e.g. Organic Sidr Honey, Solar Pump" required>
+          </div>
+          
+          <div class="form-group" style="display:grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+            <div>
+              <label for="list-type">Listing Type</label>
+              <select id="list-type" class="form-input" onchange="toggleListingPriceInput()" required>
+                <option value="sell" selected>For Sale (Local Produce)</option>
+                <option value="donate">Donation (Corporate Support)</option>
+              </select>
+            </div>
+            <div>
+              <label for="list-price">Price (AED)</label>
+              <input type="number" id="list-price" class="form-input" placeholder="AED Amount" min="0" value="50">
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label for="list-desc">Detailed Description</label>
+            <textarea id="list-desc" class="form-input" rows="3" placeholder="Provide product origin, size, condition, and environment details..." required></textarea>
+          </div>
+          
+          <div class="form-group" style="display:grid; grid-template-columns: 1.2fr 0.8fr; gap:15px;">
+            <div>
+              <label for="list-image">Sample Image (Optional Mock)</label>
+              <select id="list-image" class="form-input">
+                <option value="dates">Dates / Agricultural</option>
+                <option value="craft">Handicraft / Fabric</option>
+                <option value="electronics">Electronics / Devices</option>
+                <option value="tools">Environmental / Irrigation Tools</option>
+              </select>
+            </div>
+            <div>
+              <label for="list-origin">Origin Area</label>
+              <input type="text" id="list-origin" class="form-input" value="Hatta" readonly style="background:rgba(255,255,255,0.01);">
+            </div>
+          </div>
+          
+          <div style="display:flex; justify-content:flex-end; gap: 15px; margin-top:25px;">
+            <button type="button" class="btn-secondary" onclick="closeAddListingModal()" style="padding:10px 20px; font-size:0.9rem;">Cancel</button>
+            <button type="submit" class="btn-primary" style="padding:10px 24px; font-size:0.9rem;">Publish Listing</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Stack -->
+  <div class="toast-container" id="toast-container-stack"></div>
+
+  <!-- JavaScript File -->
+  <script src="app.js"></script>
+</body>
+</html>

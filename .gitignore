@@ -1,0 +1,14 @@
+node_modules/
+dist/
+__pycache__/
+*.db
+.env
+.agents/
+.gemini/
+.oxlintrc.json
+frontend/node_modules/
+frontend/dist/
+backend/__pycache__/
+backend/*.db
+backend/uploaded_documents/
+backend/generated_reports/

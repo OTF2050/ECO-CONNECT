@@ -1,0 +1,227 @@
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap");
+@import "tailwindcss";
+
+@theme {
+  --color-eco-dark: #0a0e17;
+  --color-eco-green: #1b4d3e;
+  --color-eco-sand: #d49a43;
+}
+
+/* ==========================================================================
+   ECO CONNECT — LIGHT UAE GOVERNMENT THEME
+   A clean, ministry-grade light design system (gold + green on warm white).
+   ========================================================================== */
+:root {
+  --eco-font-scale: 1;
+
+  /* Surfaces */
+  --gx-page: #f4f1e9;        /* warm sand canvas */
+  --gx-panel: #ffffff;       /* cards / panels */
+  --gx-panel-soft: #faf8f2;  /* subtle inset */
+  --gx-neutral: #ece8dd;     /* neutral chips / ghost buttons */
+
+  /* Lines */
+  --gx-line: #e6e1d4;
+  --gx-line-strong: #d6cdb8;
+
+  /* Text */
+  --gx-ink: #16241f;         /* headings */
+  --gx-body: #3c4742;        /* body copy */
+  --gx-muted: #6b7280;       /* captions */
+  --gx-faint: #9aa1ab;
+
+  /* Brand */
+  --gx-gold: #a6802b;
+  --gx-gold-dark: #785a13;
+  --gx-green: #0f7a54;
+  --gx-green-700: #047857;
+}
+
+html {
+  font-size: calc(16px * var(--eco-font-scale));
+}
+
+body {
+  background-color: var(--gx-page);
+  color: var(--gx-body);
+  min-height: 100vh;
+  font-family: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  background-image:
+    radial-gradient(circle at 8% 12%, rgba(166, 128, 43, 0.07) 0%, transparent 42%),
+    radial-gradient(circle at 92% 88%, rgba(15, 122, 84, 0.06) 0%, transparent 45%);
+  background-attachment: fixed;
+}
+
+/* --------------------------------------------------------------------------
+   Theme override layer — remaps the app's dark utility classes to the light
+   government palette. Placed (unlayered) after the Tailwind import so it wins
+   over Tailwind's layered utilities without !important.
+   -------------------------------------------------------------------------- */
+
+/* Surface backgrounds */
+.bg-zinc-950 { background-color: var(--gx-page); }
+.bg-zinc-900,
+.bg-zinc-900\/60,
+.bg-zinc-900\/40,
+.bg-zinc-900\/30 { background-color: var(--gx-panel); }
+.bg-zinc-900\/20,
+.bg-zinc-900\/10,
+.bg-zinc-850,
+.bg-zinc-800\/50,
+.bg-zinc-800\/40 { background-color: var(--gx-panel-soft); }
+.bg-zinc-800,
+.bg-zinc-800\/80 { background-color: var(--gx-neutral); }
+
+/* Hover backgrounds */
+.hover\:bg-zinc-700\/85:hover,
+.hover\:bg-zinc-700\/80:hover,
+.hover\:bg-zinc-750:hover { background-color: var(--gx-line); }
+.hover\:bg-zinc-850:hover,
+.hover\:bg-zinc-900\/40:hover,
+.hover\:bg-zinc-900\/30:hover { background-color: var(--gx-panel-soft); }
+
+/* Text colours */
+.text-zinc-100,
+.text-zinc-200 { color: var(--gx-ink); }
+.text-zinc-300,
+.text-zinc-350 { color: var(--gx-body); }
+.text-zinc-400 { color: #55606b; }
+.text-zinc-500,
+.text-zinc-550 { color: var(--gx-muted); }
+.text-zinc-600 { color: var(--gx-faint); }
+.hover\:text-zinc-200:hover { color: var(--gx-ink); }
+.hover\:text-zinc-350:hover { color: var(--gx-body); }
+
+/* Borders */
+.border-zinc-800,
+.border-zinc-800\/80,
+.border-zinc-800\/60,
+.border-zinc-800\/50,
+.border-zinc-850,
+.border-zinc-900 { border-color: var(--gx-line); }
+.border-zinc-700,
+.border-zinc-700\/50,
+.border-zinc-750 { border-color: var(--gx-line-strong); }
+.hover\:border-zinc-700:hover,
+.hover\:border-zinc-750:hover,
+.hover\:border-zinc-700\/50:hover { border-color: var(--gx-line-strong); }
+.divide-zinc-900 > :not([hidden]) ~ :not([hidden]) { border-color: var(--gx-line); }
+
+/* Accent text — darkened so it stays legible on white */
+.text-emerald-400 { color: #047857; }
+.text-emerald-500 { color: #059669; }
+.text-teal-400,
+.text-teal-300 { color: #0d8a78; }
+.text-blue-400 { color: #2563eb; }
+.text-amber-400,
+.text-amber-500 { color: #b45309; }
+.text-red-400,
+.text-red-500 { color: #dc2626; }
+.text-rose-400,
+.text-rose-500 { color: #e11d48; }
+.text-yellow-500 { color: #ca8a04; }
+
+/* Brand gradient (bg-clip-text) — darken stops for white background */
+.from-emerald-400 { --tw-gradient-from: #0f7a54 !important; }
+.via-teal-300 { --tw-gradient-via: #0d8a78 !important; }
+.to-teal-300 { --tw-gradient-to: #0d8a78 !important; }
+
+/* Arbitrary hex utilities used across the Farmer portal */
+.bg-\[\#0a0a0a\] { background-color: var(--gx-page); }
+.bg-\[\#0f1115\],
+.bg-\[\#15171e\] { background-color: var(--gx-panel); }
+.bg-\[\#1f222d\] { background-color: var(--gx-neutral); }
+.bg-\[\#1a2024\] { background-color: rgba(4,120,87,0.1); }
+.bg-\[\#1b3d34\] { background-color: rgba(4,120,87,0.12); }
+.text-\[\#4ade80\] { color: #047857; }
+.text-\[\#c2964b\] { color: #a6802b; }
+.bg-blue-900\/40 { background-color: rgba(37,99,235,0.1); }
+.border-emerald-900\/50 { border-color: rgba(4,120,87,0.35); }
+
+/* Soft government shadows */
+.shadow-lg { box-shadow: 0 10px 26px rgba(28, 40, 35, 0.07) !important; }
+.shadow-xl { box-shadow: 0 16px 38px rgba(28, 40, 35, 0.09) !important; }
+.shadow-2xl { box-shadow: 0 24px 60px rgba(120, 90, 19, 0.12) !important; }
+
+/* Gentle entrance + card hover lift (skipped under reduced motion) */
+@keyframes ecoFade {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+.min-h-screen { animation: ecoFade 0.5s ease both; }
+.backdrop-blur-xl {
+  transition: box-shadow 0.25s ease, transform 0.25s ease;
+}
+.backdrop-blur-xl:hover {
+  box-shadow: 0 14px 34px rgba(120, 90, 19, 0.12);
+}
+
+/* --------------------------------------------------------------------------
+   Accessibility modes (light-theme aware)
+   -------------------------------------------------------------------------- */
+html.eco-dyslexia body {
+  font-family: Verdana, Tahoma, "Trebuchet MS", sans-serif;
+  letter-spacing: 0.02em;
+}
+
+html.eco-high-contrast body {
+  background-color: #ffffff;
+  background-image: none;
+  color: #000000;
+}
+html.eco-high-contrast .bg-zinc-900,
+html.eco-high-contrast .bg-zinc-900\/60,
+html.eco-high-contrast .bg-zinc-900\/40,
+html.eco-high-contrast .bg-zinc-900\/30 { background-color: #ffffff; }
+html.eco-high-contrast .border-zinc-800,
+html.eco-high-contrast .border-zinc-800\/80,
+html.eco-high-contrast .border-zinc-850 { border-color: #000000; }
+
+html.eco-reduced-motion *,
+html.eco-reduced-motion *::before,
+html.eco-reduced-motion *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+
+/* Letter / word spacing */
+html.eco-spacing body,
+html.eco-spacing body * {
+  letter-spacing: var(--eco-letter-spacing, 0) !important;
+  word-spacing: var(--eco-word-spacing, 0) !important;
+}
+
+/* Saturation control */
+html.eco-saturate body {
+  filter: saturate(var(--eco-saturation, 1));
+}
+
+/* Hide decorative images for focus */
+html.eco-hide-images img,
+html.eco-hide-images svg:not([data-keep]) {
+  visibility: hidden !important;
+}
+
+/* Colour-blindness simulation / correction filters */
+html.eco-cb-grayscale body { filter: grayscale(1); }
+html.eco-cb-protanopia body { filter: url('#eco-protanopia'); }
+html.eco-cb-deuteranopia body { filter: url('#eco-deuteranopia'); }
+html.eco-cb-tritanopia body { filter: url('#eco-tritanopia'); }
+
+/* Custom government scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background-color: var(--gx-page);
+}
+::-webkit-scrollbar-thumb {
+  background-color: rgba(166, 128, 43, 0.45);
+  border-radius: 6px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(15, 122, 84, 0.7);
+}

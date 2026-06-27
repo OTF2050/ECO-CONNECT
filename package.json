@@ -1,0 +1,13 @@
+{
+  "name": "eco-connect-root",
+  "version": "1.0.0",
+  "description": "Root workspace manager for Eco Connect",
+  "scripts": {
+    "dev": "npm run dev --prefix frontend",
+    "backend": "python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000 --reload",
+    "start": "npx concurrently \"npm run backend\" \"npm run dev\""
+  },
+  "dependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
